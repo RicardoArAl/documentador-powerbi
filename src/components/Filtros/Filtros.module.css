@@ -1,6 +1,6 @@
 /* =============================================
    SECCIÓN 3: FILTROS - ESTILOS
-   Versión: 2.0 Mejorada
+   Versión: 2.1 (Soporte Multi-Campo)
    ============================================= */
 
 .container {
@@ -507,4 +507,125 @@
     padding: 1rem;
     font-size: 1rem;
   }
+}
+
+/* ============ MULTI-SELECTOR ESTILOS (NUEVO) ============ */
+
+.selectorWrapper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btnAgregarCampo {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btnAgregarCampo:hover {
+  background-color: #388e3c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btnAgregarCampo:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Contenedor de las etiquetas (chips) */
+.chipsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  min-height: 50px;
+  align-items: center;
+}
+
+.placeholderChips {
+  color: #999;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-left: 5px;
+}
+
+/* Estilo de cada Chip individual */
+.chipItem {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ff9800;
+  border-radius: 20px;
+  padding: 4px 6px 4px 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  animation: fadeIn 0.3s ease;
+}
+
+.chipText {
+  font-weight: 600;
+  color: #e65100;
+  font-size: 0.85rem;
+  margin-right: 8px;
+}
+
+.chipDelete {
+  background: #ffcc80;
+  border: none;
+  color: #e65100;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.chipDelete:hover {
+  background: #f57c00;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* El símbolo '+' visual entre chips */
+.chipConnector {
+  margin-left: 8px;
+  color: #999;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* Preview del código generado */
+.sqlPreview {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sqlPreview code {
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #333;
+  font-family: 'Consolas', monospace;
+  border: 1px solid #ddd;
 }

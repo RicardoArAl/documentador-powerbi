@@ -1,19 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react'; // Eliminamos useState de previews porque usaremos el estado global
 import styles from './Visualizaciones.module.css';
 
 /**
  * SECCIÓN 4: VISUALIZACIONES
  * Componente para documentar los gráficos, tablas y visuales del reporte Power BI
- * - Usuario sube capturas de cada visual
- * - Documenta: título, tipo, campos usados, métricas
- * - Sección OPCIONAL para exportación
  */
 
 const Visualizaciones = ({ reportData, setReportData }) => {
   
-  // Estado local para preview de imágenes
-  const [previews, setPreviews] = useState({});
-
   // Tipos de visualización predefinidos
   const TIPOS_VISUAL = [
     'Tabla',
@@ -39,10 +33,10 @@ const Visualizaciones = ({ reportData, setReportData }) => {
    */
   const handleAgregarVisualizacion = () => {
     const nuevaVisualizacion = {
-      id: Date.now(), // ID único
+      id: Date.now(),
       titulo: '',
       tipo: '',
-      imagen: null,
+      imagen: null, // Aquí guardaremos el Base64 string
       camposUtilizados: [],
       metricasCalculadas: '',
       descripcion: ''
@@ -63,13 +57,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
         ...prev,
         visualizaciones: prev.visualizaciones.filter(v => v.id !== id)
       }));
-      
-      // Eliminar preview
-      setPreviews(prev => {
-        const newPreviews = { ...prev };
-        delete newPreviews[id];
-        return newPreviews;
-      });
     }
   };
 
@@ -112,12 +99,12 @@ const Visualizaciones = ({ reportData, setReportData }) => {
   };
 
   /**
-   * Manejar carga de imagen
+   * CORRECCIÓN: Manejar carga de imagen y convertir a Base64
    */
   const handleImagenChange = (id, e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar que sea imagen
+      // Validar tipo
       if (!file.type.startsWith('image/')) {
         alert('Por favor selecciona un archivo de imagen válido');
         return;
@@ -129,31 +116,27 @@ const Visualizaciones = ({ reportData, setReportData }) => {
         return;
       }
 
-      // Guardar archivo en estado
-      handleCambioVisualizacion(id, 'imagen', file);
-
-      // Crear preview
+      // LEER COMO BASE64
       const reader = new FileReader();
+      
       reader.onloadend = () => {
-        setPreviews(prev => ({
-          ...prev,
-          [id]: reader.result
-        }));
+        // Guardamos el string Base64 directamente en el estado global
+        handleCambioVisualizacion(id, 'imagen', reader.result);
       };
-      reader.readAsDataURL(file);
+
+      reader.onerror = () => {
+        alert('Error al leer el archivo');
+      };
+
+      reader.readAsDataURL(file); // Esto dispara el onloadend con el Base64
     }
   };
 
   /**
-   * Eliminar imagen
+   * Eliminar imagen (ahora simplemente borra el string del estado)
    */
   const handleEliminarImagen = (id) => {
     handleCambioVisualizacion(id, 'imagen', null);
-    setPreviews(prev => {
-      const newPreviews = { ...prev };
-      delete newPreviews[id];
-      return newPreviews;
-    });
   };
 
   /**
@@ -235,10 +218,11 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                 <div className={styles.formGroup}>
                   <label>Captura del visual</label>
                   <div className={styles.uploadArea}>
-                    {previews[visual.id] ? (
+                    {/* CAMBIO: Usamos visual.imagen directamente porque ahora es Base64 */}
+                    {visual.imagen ? (
                       <div className={styles.previewContainer}>
                         <img 
-                          src={previews[visual.id]} 
+                          src={visual.imagen} 
                           alt="Preview" 
                           className={styles.preview}
                         />

@@ -1,36 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Filtros.module.css';
 
 const Filtros = ({ datos, onGuardar }) => {
   // Estado local para los filtros
   const [filtros, setFiltros] = useState(datos.filtros || []);
-  const [editandoIndex, setEditandoIndex] = useState(null);
+  
+  // CAMBIO: Usamos ID en lugar de Index para evitar errores al agregar/borrar
+  const [editandoId, setEditandoId] = useState(null);
+  
+  const [campoTemporal, setCampoTemporal] = useState('');
 
-  // Tipos de controles disponibles
+  // Sincronizar estado si los datos cambian desde fuera
+  useEffect(() => {
+    if (datos.filtros) {
+      setFiltros(datos.filtros);
+    }
+  }, [datos.filtros]);
+
   const tiposControl = [
-    'Slicer',
-    'Dropdown',
-    'Multi-select',
-    'Checkbox',
-    'Radio Button',
-    'Date Picker',
-    'Range Slider',
-    'Text Input'
+    'Segmentación (Slicer) - Lista',
+    'Segmentación (Slicer) - Menú desplegable',
+    'Segmentación (Slicer) - Mosaico/Botones',
+    'Segmentación (Slicer) - Entre (Fechas/Números)',
+    'Filtro Panel Lateral',
+    'Filtro URL'
   ];
 
-  /**
-   * Obtiene las columnas detectadas en la Sección 2
-   */
   const columnasDisponibles = datos.camposDetectados?.map(campo => campo.nombre) || [];
 
   /**
-   * Agrega un nuevo filtro vacío
+   * Agrega un nuevo filtro vacío y LO ABRE AUTOMÁTICAMENTE
    */
   const handleAgregarFiltro = () => {
+    const nuevoId = Date.now(); // Generamos ID único
+    
     const nuevoFiltro = {
-      id: Date.now(), // ID único
+      id: nuevoId,
       nombre: '',
       campoSQL: '',
+      camposRaw: [],
       tipoControl: '',
       valores: '',
       descripcion: '',
@@ -40,13 +48,52 @@ const Filtros = ({ datos, onGuardar }) => {
 
     const nuevosFiltros = [...filtros, nuevoFiltro];
     setFiltros(nuevosFiltros);
-    setEditandoIndex(nuevosFiltros.length - 1); // Abrir para editar
+    
+    // CAMBIO: Forzamos la edición usando el ID único recién creado
+    setEditandoId(nuevoId); 
+    
+    guardarEnPadre(nuevosFiltros);
+    
+    // Scroll suave al final para ver el nuevo filtro
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleAgregarCampo = (index) => {
+    if (!campoTemporal) return;
+    const nuevosFiltros = [...filtros];
+    const filtro = nuevosFiltros[index];
+    const camposActuales = filtro.camposRaw || (filtro.campoSQL ? [filtro.campoSQL] : []);
+
+    if (!camposActuales.includes(campoTemporal)) {
+      const nuevosCampos = [...camposActuales, campoTemporal];
+      filtro.camposRaw = nuevosCampos;
+      filtro.campoSQL = nuevosCampos.length > 1 
+        ? nuevosCampos.join(" + ' - ' + ") 
+        : nuevosCampos[0];
+
+      setFiltros(nuevosFiltros);
+      guardarEnPadre(nuevosFiltros);
+    }
+    setCampoTemporal('');
+  };
+
+  const handleEliminarCampo = (indexFiltro, campoAEliminar) => {
+    const nuevosFiltros = [...filtros];
+    const filtro = nuevosFiltros[indexFiltro];
+    const camposActuales = filtro.camposRaw || (filtro.campoSQL ? [filtro.campoSQL] : []);
+    const nuevosCampos = camposActuales.filter(c => c !== campoAEliminar);
+    
+    filtro.camposRaw = nuevosCampos;
+    filtro.campoSQL = nuevosCampos.length > 0 
+        ? nuevosCampos.join(" + ' - ' + ") 
+        : '';
+
+    setFiltros(nuevosFiltros);
     guardarEnPadre(nuevosFiltros);
   };
 
-  /**
-   * Actualiza un filtro específico
-   */
   const handleActualizarFiltro = (index, campo, valor) => {
     const nuevosFiltros = [...filtros];
     nuevosFiltros[index][campo] = valor;
@@ -54,13 +101,9 @@ const Filtros = ({ datos, onGuardar }) => {
     guardarEnPadre(nuevosFiltros);
   };
 
-  /**
-   * Maneja la carga de imagen
-   */
   const handleCargarImagen = (index, event) => {
     const file = event.target.files[0];
     if (file) {
-      // Crear preview de la imagen
       const reader = new FileReader();
       reader.onloadend = () => {
         const nuevosFiltros = [...filtros];
@@ -73,9 +116,6 @@ const Filtros = ({ datos, onGuardar }) => {
     }
   };
 
-  /**
-   * Elimina la imagen de un filtro
-   */
   const handleEliminarImagen = (index) => {
     const nuevosFiltros = [...filtros];
     nuevosFiltros[index].imagenReferencia = null;
@@ -84,30 +124,24 @@ const Filtros = ({ datos, onGuardar }) => {
     guardarEnPadre(nuevosFiltros);
   };
 
-  /**
-   * Elimina un filtro completo
-   */
   const handleEliminarFiltro = (index) => {
     const nuevosFiltros = filtros.filter((_, i) => i !== index);
     setFiltros(nuevosFiltros);
-    setEditandoIndex(null);
+    // Si eliminamos el que se estaba editando, cerramos la edición
+    if (editandoId === filtros[index].id) {
+        setEditandoId(null);
+    }
     guardarEnPadre(nuevosFiltros);
   };
 
-  /**
-   * Guarda en el estado padre
-   */
   const guardarEnPadre = (nuevosFiltros) => {
-    onGuardar({
-      filtros: nuevosFiltros
-    });
+    onGuardar({ filtros: nuevosFiltros });
   };
 
-  /**
-   * Toggle edición de un filtro
-   */
-  const toggleEdicion = (index) => {
-    setEditandoIndex(editandoIndex === index ? null : index);
+  // CAMBIO: Toggle usando ID
+  const toggleEdicion = (id) => {
+    setEditandoId(editandoId === id ? null : id);
+    setCampoTemporal('');
   };
 
   return (
@@ -115,19 +149,15 @@ const Filtros = ({ datos, onGuardar }) => {
       <h2>🔍 Sección 3: Filtros y Parámetros</h2>
 
       <div className={styles.instruccion}>
-        <strong>📌 Instrucciones:</strong> Documenta los filtros y parámetros que tiene tu reporte de Power BI. 
-        Puedes agregar tantos filtros como necesites. Las imágenes son opcionales y sirven como referencia visual.
+        <strong>📌 Instrucciones:</strong> Documenta los filtros. Si un filtro usa dos campos (ej: Código + Nombre), agrégalos en orden y se concatenarán automáticamente.
       </div>
 
-      {/* Advertencia si no hay columnas */}
       {columnasDisponibles.length === 0 && (
         <div className={styles.advertencia}>
-          ⚠️ No se detectaron columnas en la Sección 2. Por favor, completa primero la sección de Consulta SQL 
-          para poder asociar filtros con campos.
+          ⚠️ No se detectaron columnas en la Sección 2. Completa la consulta SQL primero.
         </div>
       )}
 
-      {/* Lista de filtros */}
       {filtros.length === 0 ? (
         <div className={styles.sinFiltros}>
           <p>📝 No has agregado ningún filtro todavía.</p>
@@ -137,6 +167,7 @@ const Filtros = ({ datos, onGuardar }) => {
         <div className={styles.listaFiltros}>
           {filtros.map((filtro, index) => (
             <div key={filtro.id} className={styles.filtroCard}>
+              
               {/* Header del filtro */}
               <div className={styles.filtroHeader}>
                 <div className={styles.filtroTitulo}>
@@ -147,11 +178,11 @@ const Filtros = ({ datos, onGuardar }) => {
                 </div>
                 <div className={styles.filtroAcciones}>
                   <button
-                    onClick={() => toggleEdicion(index)}
+                    onClick={() => toggleEdicion(filtro.id)} // USAMOS ID
                     className={styles.btnEditar}
-                    title={editandoIndex === index ? 'Colapsar' : 'Editar'}
+                    title={editandoId === filtro.id ? 'Colapsar' : 'Editar'}
                   >
-                    {editandoIndex === index ? '▲' : '✏️'}
+                    {editandoId === filtro.id ? '▲' : '✏️'}
                   </button>
                   <button
                     onClick={() => handleEliminarFiltro(index)}
@@ -163,47 +194,75 @@ const Filtros = ({ datos, onGuardar }) => {
                 </div>
               </div>
 
-              {/* Contenido del filtro (expandible) */}
-              {editandoIndex === index && (
+              {/* Contenido Expandible (Check por ID) */}
+              {editandoId === filtro.id && (
                 <div className={styles.filtroContenido}>
-                  {/* Nombre del filtro */}
+                  
+                  {/* Nombre */}
                   <div className={styles.campo}>
-                    <label>
-                      Nombre del filtro <span className={styles.requerido}>*</span>
-                    </label>
+                    <label>Nombre del filtro <span className={styles.requerido}>*</span></label>
                     <input
                       type="text"
                       value={filtro.nombre}
                       onChange={(e) => handleActualizarFiltro(index, 'nombre', e.target.value)}
-                      placeholder="Ej: Período Académico"
+                      placeholder="Ej: Sede, Año, Programa"
                       className={styles.input}
                     />
                   </div>
 
-                  {/* Campo SQL asociado */}
+                  {/* CAMPO SQL (LÓGICA MULTISELECCIÓN) */}
                   <div className={styles.campo}>
-                    <label>
-                      Campo SQL asociado <span className={styles.requerido}>*</span>
-                    </label>
-                    <select
-                      value={filtro.campoSQL}
-                      onChange={(e) => handleActualizarFiltro(index, 'campoSQL', e.target.value)}
-                      className={styles.select}
-                    >
-                      <option value="">-- Selecciona un campo --</option>
-                      {columnasDisponibles.map((col, i) => (
-                        <option key={i} value={col}>
-                          {col}
-                        </option>
+                    <label>Campo(s) SQL asociado(s) <span className={styles.requerido}>*</span></label>
+                    
+                    <div className={styles.selectorWrapper}>
+                      <select
+                        value={campoTemporal}
+                        onChange={(e) => setCampoTemporal(e.target.value)}
+                        className={styles.select}
+                        style={{ flex: 1 }}
+                      >
+                        <option value="">-- Selecciona campo para agregar --</option>
+                        {columnasDisponibles.map((col, i) => (
+                          <option key={i} value={col}>{col}</option>
+                        ))}
+                      </select>
+                      <button 
+                        type="button"
+                        onClick={() => handleAgregarCampo(index)}
+                        className={styles.btnAgregarCampo}
+                        disabled={!campoTemporal}
+                      >
+                        + Agregar
+                      </button>
+                    </div>
+
+                    <div className={styles.chipsContainer}>
+                      {(!filtro.camposRaw || filtro.camposRaw.length === 0) && !filtro.campoSQL && (
+                        <span className={styles.placeholderChips}>No hay campos seleccionados</span>
+                      )}
+                      
+                      {(filtro.camposRaw || (filtro.campoSQL ? [filtro.campoSQL] : [])).map((campo, idx, arr) => (
+                        <div key={idx} className={styles.chipItem}>
+                          <span className={styles.chipText}>{campo}</span>
+                          <button 
+                            className={styles.chipDelete}
+                            onClick={() => handleEliminarCampo(index, campo)}
+                            title="Quitar campo"
+                          >✕</button>
+                          {idx < arr.length - 1 && <span className={styles.chipConnector}>+</span>}
+                        </div>
                       ))}
-                    </select>
+                    </div>
+                    
+                    <div className={styles.sqlPreview}>
+                      <small>Resultado concatenado: </small> 
+                      <code>{filtro.campoSQL}</code>
+                    </div>
                   </div>
 
                   {/* Tipo de control */}
                   <div className={styles.campo}>
-                    <label>
-                      Tipo de control <span className={styles.requerido}>*</span>
-                    </label>
+                    <label>Tipo de control <span className={styles.requerido}>*</span></label>
                     <select
                       value={filtro.tipoControl}
                       onChange={(e) => handleActualizarFiltro(index, 'tipoControl', e.target.value)}
@@ -211,9 +270,7 @@ const Filtros = ({ datos, onGuardar }) => {
                     >
                       <option value="">-- Selecciona un tipo --</option>
                       {tiposControl.map((tipo, i) => (
-                        <option key={i} value={tipo}>
-                          {tipo}
-                        </option>
+                        <option key={i} value={tipo}>{tipo}</option>
                       ))}
                     </select>
                   </div>
@@ -225,12 +282,10 @@ const Filtros = ({ datos, onGuardar }) => {
                       type="text"
                       value={filtro.valores}
                       onChange={(e) => handleActualizarFiltro(index, 'valores', e.target.value)}
-                      placeholder="Ej: 2024-01, 2024-02, 2025-01"
+                      placeholder="Ej: 2024, 2025, 2026"
                       className={styles.input}
                     />
-                    <small className={styles.ayuda}>
-                      Separa múltiples valores con comas
-                    </small>
+                    <small className={styles.ayuda}>Separa múltiples valores con comas</small>
                   </div>
 
                   {/* Descripción */}
@@ -239,56 +294,49 @@ const Filtros = ({ datos, onGuardar }) => {
                     <textarea
                       value={filtro.descripcion}
                       onChange={(e) => handleActualizarFiltro(index, 'descripcion', e.target.value)}
-                      placeholder="Describe cómo funciona este filtro..."
                       className={styles.textarea}
                       rows={3}
+                      placeholder="Describe la función del filtro..."
                     />
                   </div>
 
-                  {/* Imagen de referencia */}
+                  {/* Imagen */}
                   <div className={styles.campo}>
                     <label>Imagen de referencia (opcional)</label>
-                    
-                    {/* Preview de imagen */}
-                    {filtro.imagenPreview && (
+                    {filtro.imagenPreview ? (
                       <div className={styles.imagenPreview}>
-                        <img src={filtro.imagenPreview} alt="Preview filtro" />
-                        <button
-                          onClick={() => handleEliminarImagen(index)}
-                          className={styles.btnEliminarImagen}
-                        >
+                        <img src={filtro.imagenPreview} alt="Preview" />
+                        <button onClick={() => handleEliminarImagen(index)} className={styles.btnEliminarImagen}>
                           ✕ Eliminar imagen
                         </button>
                       </div>
-                    )}
-
-                    {/* Input para cargar imagen */}
-                    {!filtro.imagenPreview && (
+                    ) : (
                       <div className={styles.uploadArea}>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleCargarImagen(index, e)}
                           className={styles.inputFile}
-                          id={`imagen-${index}`}
+                          id={`img-${filtro.id}`}
                         />
-                        <label htmlFor={`imagen-${index}`} className={styles.labelFile}>
-                          📸 Seleccionar imagen
+                        <label htmlFor={`img-${filtro.id}`} className={styles.labelFile}>
+                          📸 Subir Imagen
                         </label>
                       </div>
                     )}
                   </div>
+
                 </div>
               )}
 
-              {/* Vista compacta cuando está colapsado */}
-              {editandoIndex !== index && (
+              {/* Resumen Compacto */}
+              {editandoId !== filtro.id && (
                 <div className={styles.filtroResumen}>
                   <div className={styles.resumenItem}>
-                    <strong>Campo:</strong> {filtro.campoSQL || '(No definido)'}
+                    <strong>Campo:</strong> {filtro.campoSQL || '(Pendiente)'}
                   </div>
                   <div className={styles.resumenItem}>
-                    <strong>Tipo:</strong> {filtro.tipoControl || '(No definido)'}
+                    <strong>Tipo:</strong> {filtro.tipoControl || '-'}
                   </div>
                   {filtro.imagenPreview && (
                     <div className={styles.resumenItem}>
@@ -297,16 +345,14 @@ const Filtros = ({ datos, onGuardar }) => {
                   )}
                 </div>
               )}
+
             </div>
           ))}
         </div>
       )}
 
-      {/* Botón para agregar nuevo filtro */}
-      <button
-        onClick={handleAgregarFiltro}
-        className={styles.btnAgregar}
-      >
+      {/* Botón Agregar Filtro */}
+      <button onClick={handleAgregarFiltro} className={styles.btnAgregar}>
         ➕ Agregar Filtro
       </button>
 
