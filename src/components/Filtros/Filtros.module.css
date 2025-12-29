@@ -1,217 +1,325 @@
+/* =============================================
+   SECCIÓN 3: FILTROS - ESTILOS
+   Versión: 2.0 Mejorada
+   ============================================= */
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px;
+  padding: 2rem 1rem;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .container h2 {
-  color: #2c3e50;
-  margin-bottom: 20px;
-  font-size: 28px;
-  border-bottom: 3px solid #3498db;
-  padding-bottom: 10px;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #ff9800 0%, #ffb74d 100%) 1;
 }
 
-/* Instrucciones */
+/* ============ INSTRUCCIONES ============ */
 .instruccion {
-  background: #e8f4f8;
-  padding: 15px;
-  border-left: 4px solid #3498db;
-  margin-bottom: 25px;
-  color: #2c3e50;
-  line-height: 1.6;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  padding: 1.2rem 1.5rem;
+  border-left: 4px solid #ff9800;
+  margin-bottom: 2rem;
+  color: #e65100;
+  line-height: 1.7;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.15);
+  animation: slideDown 0.5s ease;
 }
 
-/* Advertencia */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.instruccion::before {
+  content: "📌 ";
+  font-size: 1.3rem;
+  margin-right: 0.5rem;
+}
+
+/* ============ ADVERTENCIA ============ */
 .advertencia {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  color: #856404;
+  background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+  border: 2px solid #ffc107;
+  padding: 1.2rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  color: #f57f17;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+  animation: slideInLeft 0.5s ease;
 }
 
-/* Sin filtros */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.advertencia::before {
+  content: "⚡ ";
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+/* ============ EMPTY STATE ============ */
 .sinFiltros {
   text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 8px;
-  border: 2px dashed #e0e0e0;
-  margin-bottom: 20px;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 2px dashed #ff9800;
+  margin-bottom: 2rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); border-color: #ff9800; }
+  50% { transform: scale(1.02); border-color: #ffb74d; }
+}
+
+.sinFiltros::before {
+  content: "🔍";
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 .sinFiltros p {
-  color: #7f8c8d;
-  margin: 10px 0;
+  color: #e65100;
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
-/* Lista de filtros */
+/* ============ LISTA DE FILTROS ============ */
 .listaFiltros {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-/* Card de filtro */
+/* ============ CARD DE FILTRO ============ */
 .filtroCard {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(255, 152, 0, 0.15);
   overflow: hidden;
-  transition: box-shadow 0.3s;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .filtroCard:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 40px rgba(255, 152, 0, 0.25);
+  transform: translateY(-5px);
+  border-color: #ff9800;
 }
 
-/* Header del filtro */
+/* ============ HEADER DEL FILTRO ============ */
 .filtroHeader {
-  background: #f8f9fa;
-  padding: 15px 20px;
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+  padding: 1.2rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .filtroTitulo {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 1rem;
   flex: 1;
 }
 
 .numeroFiltro {
-  background: #3498db;
+  background: rgba(255, 255, 255, 0.3);
   color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  backdrop-filter: blur(5px);
 }
 
 .nombreFiltro {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  font-size: 1.2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filtroAcciones {
   display: flex;
-  gap: 10px;
+  gap: 0.5rem;
 }
 
 .btnEditar,
 .btnEliminar {
-  background: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
   border: none;
-  font-size: 18px;
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
 }
 
 .btnEditar:hover {
-  background: #e0e0e0;
+  background: rgba(255, 255, 255, 0.4);
+  transform: rotate(10deg) scale(1.1);
 }
 
 .btnEliminar:hover {
-  background: #fee;
+  background: #f44336;
+  transform: scale(1.1);
 }
 
-/* Contenido del filtro */
+/* ============ CONTENIDO DEL FILTRO ============ */
 .filtroContenido {
-  padding: 20px;
+  padding: 2rem;
 }
 
-/* Resumen cuando está colapsado */
+/* ============ RESUMEN COLAPSADO ============ */
 .filtroResumen {
-  padding: 15px 20px;
+  padding: 1.5rem 2rem;
   display: flex;
-  gap: 20px;
+  gap: 2rem;
   flex-wrap: wrap;
-  color: #7f8c8d;
-  font-size: 14px;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
 }
 
 .resumenItem {
   display: flex;
-  gap: 5px;
+  gap: 0.5rem;
+  align-items: center;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.resumenItem strong {
+  color: #ff9800;
+  font-weight: 700;
 }
 
 .badge {
-  background: #e8f4f8;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #3498db;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  color: #e65100;
+  font-weight: 600;
+  border: 1px solid #ffb74d;
 }
 
-/* Campos del formulario */
+/* ============ CAMPOS DEL FORMULARIO ============ */
 .campo {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .campo label {
   display: block;
-  font-weight: 600;
-  color: #34495e;
-  margin-bottom: 8px;
-  font-size: 14px;
+  font-weight: 700;
+  color: #e65100;
+  margin-bottom: 0.6rem;
+  font-size: 0.95rem;
 }
 
 .requerido {
-  color: #e74c3c;
+  color: #f44336;
+  font-weight: 900;
 }
 
 .input,
-.select {
+.select,
+.textarea {
   width: 100%;
-  padding: 10px;
+  padding: 0.9rem 1rem;
   border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+  font-family: inherit;
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: #ffb74d;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.15);
 }
 
 .input:focus,
-.select:focus {
+.select:focus,
+.textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #ff9800;
+  box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .textarea {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
   resize: vertical;
-  transition: border-color 0.3s;
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: #3498db;
+  min-height: 100px;
+  line-height: 1.6;
 }
 
 .ayuda {
   display: block;
-  margin-top: 5px;
-  color: #7f8c8d;
-  font-size: 12px;
+  margin-top: 0.5rem;
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
-/* Área de carga de imagen */
+.ayuda::before {
+  content: "💡 ";
+}
+
+/* ============ UPLOAD DE IMAGEN ============ */
 .uploadArea {
-  margin-top: 10px;
+  margin-top: 1rem;
 }
 
 .inputFile {
@@ -219,105 +327,184 @@
 }
 
 .labelFile {
-  display: inline-block;
-  padding: 10px 20px;
-  background: #ecf0f1;
-  border: 2px dashed #95a5a6;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 2px dashed #ff9800;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s;
-  color: #2c3e50;
-  font-weight: 500;
+  transition: all 0.3s ease;
+  color: #e65100;
+  font-weight: 600;
 }
 
 .labelFile:hover {
-  background: #3498db;
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
   color: white;
-  border-color: #3498db;
+  border-style: solid;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
 }
 
-/* Preview de imagen */
+.labelFile::before {
+  content: "📁";
+  font-size: 1.3rem;
+}
+
+/* ============ PREVIEW DE IMAGEN ============ */
 .imagenPreview {
-  margin-top: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 10px;
-  background: #f8f9fa;
+  margin-top: 1rem;
+  border: 2px solid #ff9800;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fafafa;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.15);
+  animation: fadeIn 0.5s ease;
 }
 
 .imagenPreview img {
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
   height: auto;
-  border-radius: 4px;
+  border-radius: 8px;
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btnEliminarImagen {
-  background: #e74c3c;
+  background: linear-gradient(135deg, #f44336 0%, #e57373 100%);
   color: white;
   border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.3s;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
 .btnEliminarImagen:hover {
-  background: #c0392b;
+  background: linear-gradient(135deg, #d32f2f 0%, #e57373 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(244, 67, 54, 0.4);
 }
 
-/* Botón agregar filtro */
+.btnEliminarImagen::before {
+  content: "🗑️ ";
+  font-size: 1.1rem;
+}
+
+/* ============ BOTÓN AGREGAR ============ */
 .btnAgregar {
   width: 100%;
-  padding: 15px;
-  background: #27ae60;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
-  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .btnAgregar:hover {
-  background: #229954;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+  background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(255, 152, 0, 0.4);
 }
 
-/* Resumen final */
+.btnAgregar:active {
+  transform: translateY(0);
+}
+
+.btnAgregar::before {
+  content: "+ ";
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+/* ============ RESUMEN FINAL ============ */
 .resumenFinal {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  color: #495057;
-  font-weight: 500;
-  border-left: 4px solid #27ae60;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  padding: 1.2rem 1.5rem;
+  border-radius: 12px;
+  color: #e65100;
+  font-weight: 700;
+  border-left: 4px solid #ff9800;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.2);
+  animation: bounce 1s ease;
 }
 
-/* Responsive */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.resumenFinal::before {
+  content: "📊 ";
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+/* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .container {
-    padding: 15px;
+    padding: 1.5rem 1rem;
   }
-
+  
+  .container h2 {
+    font-size: 1.5rem;
+  }
+  
   .filtroHeader {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 1rem;
   }
-
+  
+  .filtroAcciones {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .filtroContenido {
+    padding: 1.5rem;
+  }
+  
   .filtroResumen {
     flex-direction: column;
-    gap: 10px;
+    gap: 0.8rem;
   }
-
+  
   .imagenPreview img {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .sinFiltros {
+    padding: 3rem 1rem;
+  }
+  
+  .filtroHeader {
+    padding: 1rem;
+  }
+  
+  .nombreFiltro {
+    font-size: 1rem;
+  }
+  
+  .btnAgregar {
+    padding: 1rem;
+    font-size: 1rem;
   }
 }
