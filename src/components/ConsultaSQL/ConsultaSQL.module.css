@@ -1,0 +1,278 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.container h2 {
+  color: #2c3e50;
+  margin-bottom: 30px;
+  font-size: 28px;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 10px;
+}
+
+.seccion {
+  background: white;
+  padding: 25px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.seccion h3 {
+  color: #34495e;
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+/* Input de tabla origen */
+.inputTabla {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: 'Courier New', monospace;
+  transition: border-color 0.3s;
+}
+
+.inputTabla:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Instrucciones */
+.instruccion {
+  background: #e8f4f8;
+  padding: 12px 15px;
+  border-left: 4px solid #3498db;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  line-height: 1.6;
+}
+
+/* Ejemplo de formato */
+.ejemploFormato {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border: 1px solid #dee2e6;
+}
+
+.ejemploFormato strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+.ejemploFormato pre {
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #212529;
+  border: 1px solid #e0e0e0;
+}
+
+/* Textarea grande */
+.textarea {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  resize: vertical;
+  margin-bottom: 15px;
+  transition: border-color 0.3s;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Botón analizar */
+.btnAnalizar {
+  background: #27ae60;
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btnAnalizar:hover:not(:disabled) {
+  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.btnAnalizar:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Mensajes de validación */
+.mensajeExito {
+  background: #d4edda;
+  color: #155724;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-top: 15px;
+  border: 1px solid #c3e6cb;
+  font-weight: 500;
+}
+
+.mensajeError {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-top: 15px;
+  border: 1px solid #f5c6cb;
+  font-weight: 500;
+}
+
+/* Contenedor de tabla */
+.tablaContainer {
+  overflow-x: auto;
+  margin-bottom: 15px;
+}
+
+/* Tabla de campos */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.tabla thead {
+  background: #34495e;
+  color: white;
+}
+
+.tabla th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.tabla tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.tabla tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.tabla td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+/* Celda de nombre */
+.celdaNombre code {
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Select de tipo */
+.selectTipo {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  background: white;
+}
+
+.selectTipo:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Checkbox */
+.celdaCheckbox {
+  text-align: center;
+}
+
+.celdaCheckbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Input de descripción */
+.inputDescripcion {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.inputDescripcion:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Celda de acciones */
+.celdaAcciones {
+  text-align: center;
+}
+
+.btnEliminar {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btnEliminar:hover {
+  background: #fee;
+}
+
+/* Resumen */
+.resumen {
+  background: #f8f9fa;
+  padding: 12px 15px;
+  border-radius: 6px;
+  color: #495057;
+  font-weight: 500;
+  border-left: 4px solid #27ae60;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .tabla {
+    font-size: 12px;
+  }
+
+  .tabla th,
+  .tabla td {
+    padding: 8px;
+  }
+}
