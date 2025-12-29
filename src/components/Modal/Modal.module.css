@@ -1,0 +1,140 @@
+/* =====================================================
+   MODAL.MODULE.CSS
+   Estilos para el componente Modal genérico
+   ===================================================== */
+
+/* Overlay de fondo */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Contenedor del modal */
+.modal {
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header del modal */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.titulo {
+  margin: 0;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.btnCerrar {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.btnCerrar:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Contenido del modal */
+.contenido {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Scrollbar personalizado */
+.contenido::-webkit-scrollbar {
+  width: 8px;
+}
+
+.contenido::-webkit-scrollbar-track {
+  background: var(--gray-100);
+}
+
+.contenido::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 4px;
+}
+
+.contenido::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .modal {
+    max-height: 95vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .header {
+    padding: 1rem 1.5rem;
+  }
+
+  .titulo {
+    font-size: 1.25rem;
+  }
+
+  .contenido {
+    padding: 1.5rem;
+  }
+
+  .overlay {
+    padding: 0.5rem;
+  }
+}

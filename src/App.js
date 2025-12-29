@@ -9,6 +9,10 @@ import InfoAdicional from './components/InfoAdicional/InfoAdicional';
 import VistaResumen from './components/Outputs/VistaResumen';
 import DiccionarioDatos from './components/Outputs/DiccionarioDatos';
 import ManualTecnico from './components/Outputs/ManualTecnico';
+// ===== IMPORTS: IA ===== ✅ NUEVO
+import Modal from './components/Modal/Modal';
+import Configuracion from './components/Configuracion/Configuracion';
+import { tieneApiKey } from './utils/ai/geminiClient';
 import './styles/global.css';
 
 /**
@@ -17,13 +21,13 @@ import './styles/global.css';
  * 
  * Desarrollado por: Ricardo Aral
  * Email: jho.araque84@gmail.com
- * Versión: 2.1 (SECCIÓN 2 MEJORADA) ✅
- * Fecha: 2025-01-08
+ * Versión: 3.0 (CON IA INTEGRADA) ✅
+ * Fecha: 2025-01-09
  * 
- * NOVEDADES v2.1:
- * - Sección 2 ahora soporta 2 campos: Estructura de columnas + Resultados de datos
- * - Parser mejorado que combina ambas fuentes
- * - Diccionario de Datos actualizado con columnas de Longitud y Acepta Nulos
+ * NOVEDADES v3.0:
+ * - Integración completa con Google Gemini API
+ * - Modal de configuración de IA accesible desde header
+ * - Indicador de estado de IA en el header
  */
 
 function App() {
@@ -38,6 +42,11 @@ function App() {
   const [outputActivo, setOutputActivo] = useState('resumen');
 
   // ============================================
+  // ESTADO: Modal de Configuración IA ✅ NUEVO
+  // ============================================
+  const [modalConfiguracionAbierto, setModalConfiguracionAbierto] = useState(false);
+
+  // ============================================
   // ESTADO GLOBAL: Toda la información del reporte
   // ============================================
   const [reportData, setReportData] = useState({
@@ -49,11 +58,11 @@ function App() {
     objetivo: '',
     usuarios: '',
     
-    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅ MEJORADO v2.1
-    consultaSQL: '',              // Query SELECT pegada por el usuario
-    estructuraColumnas: '',       // NUEVO: Estructura desde INFORMATION_SCHEMA
-    tablaOrigen: '',              // Nombre de la tabla/vista origen
-    camposDetectados: [],         // Array de campos parseados automáticamente
+    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅
+    consultaSQL: '',
+    estructuraColumnas: '',
+    tablaOrigen: '',
+    camposDetectados: [],
     
     // ===== SECCIÓN 3: FILTROS Y PARÁMETROS ===== ✅
     filtros: [],
@@ -104,13 +113,13 @@ function App() {
   };
 
   /**
-   * Guarda datos de Sección 2: Consulta SQL (ACTUALIZADO v2.1)
+   * Guarda datos de Sección 2: Consulta SQL
    */
   const handleGuardarConsultaSQL = (datosActualizados) => {
     setReportData(prev => ({
       ...prev,
       consultaSQL: datosActualizados.consultaSQL || prev.consultaSQL,
-      estructuraColumnas: datosActualizados.estructuraColumnas || prev.estructuraColumnas, // NUEVO
+      estructuraColumnas: datosActualizados.estructuraColumnas || prev.estructuraColumnas,
       tablaOrigen: datosActualizados.tablaOrigen || prev.tablaOrigen,
       camposDetectados: datosActualizados.camposDetectados || prev.camposDetectados
     }));
@@ -335,14 +344,32 @@ function App() {
   return (
     <div className="App">
       
-      {/* ========== HEADER ========== */}
+      {/* ========== HEADER CON BOTÓN DE IA ========== */}
       <header className="header">
-        <h1>📄 Documentador de Reportes Power BI</h1>
-        <p className="subtitle">
-          Documenta tus reportes de forma rápida y estructurada
-        </p>
-        <div className="progress-badge">
-          {calcularProgreso()}% completado
+        <div className="header-content">
+          <div className="header-left">
+            <h1>📄 Documentador de Reportes Power BI</h1>
+            <p className="subtitle">
+              Documenta tus reportes de forma rápida y estructurada
+            </p>
+          </div>
+          
+          <div className="header-right">
+            <div className="progress-badge">
+              {calcularProgreso()}% completado
+            </div>
+            
+            {/* ✅ NUEVO: Botón de Configuración IA */}
+            <button 
+              className="btn-config-ia"
+              onClick={() => setModalConfiguracionAbierto(true)}
+              title="Configurar Inteligencia Artificial"
+            >
+              <span className="icon">🤖</span>
+              <span className="text">Configurar IA</span>
+              {tieneApiKey() && <span className="badge-activo">✓</span>}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -442,6 +469,16 @@ function App() {
         )}
       </div>
 
+      {/* ========== MODAL DE CONFIGURACIÓN IA ========== ✅ NUEVO */}
+      <Modal
+        isOpen={modalConfiguracionAbierto}
+        onClose={() => setModalConfiguracionAbierto(false)}
+        titulo="⚙️ Configuración de Inteligencia Artificial"
+        maxWidth="900px"
+      >
+        <Configuracion />
+      </Modal>
+
       {/* ========== FOOTER ========== */}
       <footer className="footer">
         <p>
@@ -450,7 +487,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 2.1 (SECCIÓN 2 MEJORADA)</span>
+          <span>🗂️ Versión 3.0 (CON IA INTEGRADA)</span>
         </p>
       </footer>
 

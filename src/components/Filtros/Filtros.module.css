@@ -629,3 +629,399 @@
   font-family: 'Consolas', monospace;
   border: 1px solid #ddd;
 }
+/* =====================================================
+   ESTILOS ADICIONALES PARA IA EN FILTROS
+   Agregar al FINAL de tu Filtros.module.css existente
+   ===================================================== */
+
+/* Sección de IA dentro del filtro */
+.seccionIA {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.btnIA {
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-xl);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.btnIA:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btnIAIcono {
+  font-size: 20px;
+}
+
+.btnIATexto {
+  font-size: 16px;
+}
+
+.seccionIADescripcion {
+  color: white;
+  margin-top: var(--space-sm);
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+/* Modal de IA */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContenido {
+  background: white;
+  border-radius: var(--radius-xl);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitulo {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.btnCerrarModal {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnCerrarModal:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.modalBody {
+  padding: var(--space-2xl);
+}
+
+/* Pasos del modal */
+.pasoModal {
+  margin-bottom: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.pasoModal:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pasoTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  font-size: 18px;
+  color: var(--gray-800);
+}
+
+.pasoNumero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Drop Zone */
+.dropZone {
+  border: 3px dashed var(--gray-300);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  background: var(--gray-50);
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.dropZone:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.dropZonePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.dropZoneIcono {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.dropZoneTexto {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+.dropZoneSubtexto {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin: 0;
+}
+
+/* Imagen seleccionada en modal */
+.imagenSeleccionada {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.imagenSeleccionadaPreview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.imagenNombre {
+  font-size: 14px;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+/* Botón analizar */
+.btnAnalizar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-2xl);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  justify-content: center;
+  min-width: 200px;
+  margin: 0 auto;
+}
+
+.btnAnalizar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btnAnalizar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Resultados IA */
+.resultadosIA {
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.resultadoItem {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
+}
+
+.resultadoItem:last-child {
+  border-bottom: none;
+}
+
+.resultadoItem strong {
+  color: var(--gray-700);
+  display: inline-block;
+  min-width: 180px;
+}
+
+.resultadoConfianza {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* Acciones del modal */
+.modalAcciones {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btnAplicar {
+  background: var(--success);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-2xl);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.btnAplicar:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: #0ea368;
+}
+
+.btnReintentar {
+  background: var(--gray-600);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-2xl);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.btnReintentar:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: var(--gray-700);
+}
+
+/* Error IA */
+.errorIA {
+  background: #fee;
+  border: 2px solid var(--error);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  color: var(--error);
+  font-weight: 500;
+  text-align: center;
+  margin-top: var(--space-lg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modalContenido {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modalBody {
+    padding: var(--space-lg);
+  }
+
+  .dropZone {
+    min-height: 200px;
+    padding: var(--space-lg);
+  }
+
+  .modalAcciones {
+    flex-direction: column;
+  }
+
+  .btnAplicar,
+  .btnReintentar {
+    width: 100%;
+  }
+}

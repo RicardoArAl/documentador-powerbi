@@ -1,14 +1,27 @@
-import React from 'react'; // Eliminamos useState de previews porque usaremos el estado global
-import styles from './Visualizaciones.module.css';
-
 /**
- * SECCIÓN 4: VISUALIZACIONES
- * Componente para documentar los gráficos, tablas y visuales del reporte Power BI
+ * =====================================================
+ * COMPONENTE: VISUALIZACIONES
+ * Sección 4 - Con Análisis de IA Integrado
+ * =====================================================
  */
+
+import React, { useState, useRef } from 'react';
+import styles from './Visualizaciones.module.css';
+import { analizarVisualizacionDeImagen, validarRespuestaIA } from '../../utils/ai/analizarImagen';
 
 const Visualizaciones = ({ reportData, setReportData }) => {
   
-  // Tipos de visualización predefinidos
+  // ===== NUEVOS ESTADOS PARA IA =====
+  const [modalIAVisible, setModalIAVisible] = useState(false);
+  const [visualSeleccionadoIA, setVisualSeleccionadoIA] = useState(null);
+  const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
+  const [analizandoIA, setAnalizandoIA] = useState(false);
+  const [resultadoIA, setResultadoIA] = useState(null);
+  const [errorIA, setErrorIA] = useState(null);
+  
+  const inputImagenRef = useRef(null);
+
+  // ===== CONSTANTES =====
   const TIPOS_VISUAL = [
     'Tabla',
     'Matriz',
@@ -28,6 +41,8 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     'Otro'
   ];
 
+  // ===== FUNCIONES EXISTENTES =====
+
   /**
    * Agregar nueva visualización vacía
    */
@@ -36,7 +51,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
       id: Date.now(),
       titulo: '',
       tipo: '',
-      imagen: null, // Aquí guardaremos el Base64 string
+      imagen: null,
       camposUtilizados: [],
       metricasCalculadas: '',
       descripcion: ''
@@ -99,28 +114,24 @@ const Visualizaciones = ({ reportData, setReportData }) => {
   };
 
   /**
-   * CORRECCIÓN: Manejar carga de imagen y convertir a Base64
+   * Manejar carga de imagen y convertir a Base64
    */
   const handleImagenChange = (id, e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar tipo
       if (!file.type.startsWith('image/')) {
         alert('Por favor selecciona un archivo de imagen válido');
         return;
       }
 
-      // Validar tamaño (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('La imagen es muy grande. Máximo 5MB');
         return;
       }
 
-      // LEER COMO BASE64
       const reader = new FileReader();
       
       reader.onloadend = () => {
-        // Guardamos el string Base64 directamente en el estado global
         handleCambioVisualizacion(id, 'imagen', reader.result);
       };
 
@@ -128,12 +139,12 @@ const Visualizaciones = ({ reportData, setReportData }) => {
         alert('Error al leer el archivo');
       };
 
-      reader.readAsDataURL(file); // Esto dispara el onloadend con el Base64
+      reader.readAsDataURL(file);
     }
   };
 
   /**
-   * Eliminar imagen (ahora simplemente borra el string del estado)
+   * Eliminar imagen
    */
   const handleEliminarImagen = (id) => {
     handleCambioVisualizacion(id, 'imagen', null);
@@ -156,6 +167,174 @@ const Visualizaciones = ({ reportData, setReportData }) => {
       })
     }));
   };
+
+  // ===== NUEVAS FUNCIONES PARA IA =====
+
+  /**
+   * Abre el modal de análisis IA para una visualización específica
+   */
+  const abrirModalIA = (visual) => {
+    setVisualSeleccionadoIA(visual);
+    setModalIAVisible(true);
+    setImagenSeleccionada(null);
+    setResultadoIA(null);
+    setErrorIA(null);
+  };
+
+  /**
+   * Cierra el modal y limpia estados
+   */
+  const cerrarModalIA = () => {
+    setModalIAVisible(false);
+    setVisualSeleccionadoIA(null);
+    setImagenSeleccionada(null);
+    setResultadoIA(null);
+    setErrorIA(null);
+    setAnalizandoIA(false);
+  };
+
+  /**
+   * Maneja la selección de imagen desde el input
+   */
+  const manejarSeleccionImagen = (evento) => {
+    const archivo = evento.target.files[0];
+    if (archivo) {
+      if (!archivo.type.startsWith('image/')) {
+        setErrorIA('Por favor selecciona un archivo de imagen válido');
+        return;
+      }
+
+      if (archivo.size > 5 * 1024 * 1024) {
+        setErrorIA('La imagen es demasiado grande. Máximo 5MB');
+        return;
+      }
+
+      setImagenSeleccionada(archivo);
+      setErrorIA(null);
+    }
+  };
+
+  /**
+   * Maneja el drag and drop de imágenes
+   */
+  const manejarDrop = (e) => {
+    e.preventDefault();
+    const archivo = e.dataTransfer.files[0];
+    
+    if (archivo && archivo.type.startsWith('image/')) {
+      setImagenSeleccionada(archivo);
+      setErrorIA(null);
+    } else {
+      setErrorIA('Por favor suelta un archivo de imagen válido');
+    }
+  };
+
+  const manejarDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  /**
+   * Ejecuta el análisis de IA sobre la imagen seleccionada
+   */
+  const ejecutarAnalisisIA = async () => {
+    if (!imagenSeleccionada) {
+      setErrorIA('Por favor selecciona una imagen primero');
+      return;
+    }
+
+    setAnalizandoIA(true);
+    setErrorIA(null);
+    setResultadoIA(null);
+
+    try {
+      const camposDisponibles = reportData.camposDetectados || [];
+      const resultado = await analizarVisualizacionDeImagen(imagenSeleccionada, camposDisponibles);
+
+      const validacion = validarRespuestaIA(resultado, 0.6);
+      
+      if (!validacion.valida) {
+        console.warn('⚠️ Advertencia:', validacion.mensaje);
+      }
+
+      setResultadoIA(resultado);
+      console.log('✅ Análisis completado:', resultado);
+
+    } catch (error) {
+      console.error('❌ Error al analizar imagen:', error);
+      setErrorIA(`Error al analizar imagen: ${error.message}`);
+    } finally {
+      setAnalizandoIA(false);
+    }
+  };
+
+  /**
+   * Aplica los resultados del análisis IA a la visualización
+   */
+  const aplicarResultadosIA = () => {
+    if (!resultadoIA || !visualSeleccionadoIA) return;
+
+    const visualId = visualSeleccionadoIA.id;
+
+    // Aplicar título
+    if (resultadoIA.titulo) {
+      handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
+    }
+
+    // Aplicar tipo de visualización
+    if (resultadoIA.tipo) {
+      // Intentar hacer match con los tipos disponibles
+      const tipoEncontrado = TIPOS_VISUAL.find(
+        t => t.toLowerCase() === resultadoIA.tipo.toLowerCase()
+      );
+      handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado || resultadoIA.tipo);
+    }
+
+    // Aplicar campos utilizados (con matching inteligente)
+    if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles)) {
+      const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
+      const camposMatcheados = [];
+
+      resultadoIA.camposVisibles.forEach(campoIA => {
+        // Buscar match exacto o parcial
+        const match = camposDisponibles.find(
+          campoReal => 
+            campoReal.toLowerCase() === campoIA.toLowerCase() ||
+            campoReal.toLowerCase().includes(campoIA.toLowerCase()) ||
+            campoIA.toLowerCase().includes(campoReal.toLowerCase())
+        );
+        
+        if (match) {
+          camposMatcheados.push(match);
+        }
+      });
+
+      handleCambioVisualizacion(visualId, 'camposUtilizados', camposMatcheados);
+    }
+
+    // Aplicar métricas calculadas
+    if (resultadoIA.metricasCalculadas) {
+      handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
+    }
+
+    // Aplicar descripción
+    if (resultadoIA.descripcion) {
+      handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
+    }
+
+    // Guardar la imagen analizada
+    if (imagenSeleccionada) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        handleCambioVisualizacion(visualId, 'imagen', e.target.result);
+      };
+      reader.readAsDataURL(imagenSeleccionada);
+    }
+
+    cerrarModalIA();
+    alert('✅ Información aplicada correctamente desde el análisis de IA');
+  };
+
+  // ===== RENDER =====
 
   return (
     <div className={styles.container}>
@@ -214,11 +393,26 @@ const Visualizaciones = ({ reportData, setReportData }) => {
               {/* Contenido del formulario */}
               <div className={styles.cardBody}>
                 
+                {/* NUEVO: Sección de IA */}
+                <div className={styles.seccionIA}>
+                  <h4 className={styles.seccionIATitulo}>🤖 Asistencia con IA</h4>
+                  <p className={styles.seccionIADescripcion}>
+                    Sube una imagen del visual y la IA lo documentará automáticamente
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => abrirModalIA(visual)}
+                    className={styles.btnIA}
+                  >
+                    <span className={styles.btnIAIcono}>📷</span>
+                    <span className={styles.btnIATexto}>Analizar con IA</span>
+                  </button>
+                </div>
+
                 {/* Upload de imagen */}
                 <div className={styles.formGroup}>
                   <label>Captura del visual</label>
                   <div className={styles.uploadArea}>
-                    {/* CAMBIO: Usamos visual.imagen directamente porque ahora es Base64 */}
                     {visual.imagen ? (
                       <div className={styles.previewContainer}>
                         <img 
@@ -368,6 +562,158 @@ const Visualizaciones = ({ reportData, setReportData }) => {
         <div className={styles.contador}>
           <strong>{reportData.visualizaciones.length}</strong> 
           {reportData.visualizaciones.length === 1 ? ' visualización' : ' visualizaciones'} documentada(s)
+        </div>
+      )}
+
+      {/* ===== MODAL DE IA ===== */}
+      {modalIAVisible && (
+        <div className={styles.modalOverlay} onClick={cerrarModalIA}>
+          <div className={styles.modalContenido} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitulo}>
+                🤖 Análisis de Visualización con IA
+              </h3>
+              <button 
+                onClick={cerrarModalIA}
+                className={styles.btnCerrarModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              
+              {/* Paso 1: Seleccionar imagen */}
+              <div className={styles.pasoModal}>
+                <h4 className={styles.pasoTitulo}>
+                  <span className={styles.pasoNumero}>1</span>
+                  Selecciona una imagen de la visualización
+                </h4>
+                
+                <div 
+                  className={styles.dropZone}
+                  onDrop={manejarDrop}
+                  onDragOver={manejarDragOver}
+                  onClick={() => inputImagenRef.current?.click()}
+                >
+                  {imagenSeleccionada ? (
+                    <div className={styles.imagenSeleccionada}>
+                      <img 
+                        src={URL.createObjectURL(imagenSeleccionada)} 
+                        alt="Imagen seleccionada"
+                        className={styles.imagenSeleccionadaPreview}
+                      />
+                      <p className={styles.imagenNombre}>{imagenSeleccionada.name}</p>
+                    </div>
+                  ) : (
+                    <div className={styles.dropZonePlaceholder}>
+                      <div className={styles.dropZoneIcono}>📊</div>
+                      <p className={styles.dropZoneTexto}>
+                        Arrastra una imagen aquí
+                      </p>
+                      <p className={styles.dropZoneSubtexto}>
+                        o haz clic para seleccionar
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  ref={inputImagenRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={manejarSeleccionImagen}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Paso 2: Analizar */}
+              {imagenSeleccionada && !resultadoIA && (
+                <div className={styles.pasoModal}>
+                  <h4 className={styles.pasoTitulo}>
+                    <span className={styles.pasoNumero}>2</span>
+                    Analizar con IA
+                  </h4>
+                  
+                  <button
+                    onClick={ejecutarAnalisisIA}
+                    disabled={analizandoIA}
+                    className={styles.btnAnalizar}
+                  >
+                    {analizandoIA ? (
+                      <>
+                        <span className={styles.spinner}></span>
+                        Analizando...
+                      </>
+                    ) : (
+                      <>
+                        🔍 Analizar Imagen
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Paso 3: Resultados */}
+              {resultadoIA && (
+                <div className={styles.pasoModal}>
+                  <h4 className={styles.pasoTitulo}>
+                    <span className={styles.pasoNumero}>3</span>
+                    Resultados del análisis
+                  </h4>
+                  
+                  <div className={styles.resultadosIA}>
+                    <div className={styles.resultadoItem}>
+                      <strong>Título:</strong> {resultadoIA.titulo || 'No detectado'}
+                    </div>
+                    <div className={styles.resultadoItem}>
+                      <strong>Tipo:</strong> {resultadoIA.tipo || 'No detectado'}
+                    </div>
+                    <div className={styles.resultadoItem}>
+                      <strong>Campos Visibles:</strong> {
+                        resultadoIA.camposVisibles && resultadoIA.camposVisibles.length > 0
+                          ? resultadoIA.camposVisibles.join(', ')
+                          : 'No detectados'
+                      }
+                    </div>
+                    <div className={styles.resultadoItem}>
+                      <strong>Métricas:</strong> {resultadoIA.metricasCalculadas || 'No detectadas'}
+                    </div>
+                    <div className={styles.resultadoItem}>
+                      <strong>Descripción:</strong> {resultadoIA.descripcion || 'No generada'}
+                    </div>
+                    {resultadoIA.confianza && (
+                      <div className={styles.resultadoConfianza}>
+                        <strong>Confianza:</strong> {(resultadoIA.confianza * 100).toFixed(0)}%
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.modalAcciones}>
+                    <button
+                      onClick={aplicarResultadosIA}
+                      className={styles.btnAplicar}
+                    >
+                      ✅ Aplicar Resultados
+                    </button>
+                    <button
+                      onClick={ejecutarAnalisisIA}
+                      className={styles.btnReintentar}
+                    >
+                      🔄 Reintentar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Errores */}
+              {errorIA && (
+                <div className={styles.errorIA}>
+                  ⚠️ {errorIA}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
