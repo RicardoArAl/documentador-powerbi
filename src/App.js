@@ -3,13 +3,24 @@ import InfoBasica from './components/InfoBasica/InfoBasica';
 import ConsultaSQL from './components/ConsultaSQL/ConsultaSQL';
 import Filtros from './components/Filtros/Filtros';
 import Visualizaciones from './components/Visualizaciones/Visualizaciones';
+import ConsultasAdicionales from './components/ConsultasAdicionales/ConsultasAdicionales';
+import InfoAdicional from './components/InfoAdicional/InfoAdicional';
 import './styles/global.css';
 
 /**
  * DOCUMENTADOR DE REPORTES POWER BI
  * Aplicación para documentar reportes de Power BI de forma estructurada
+ * 
  * Desarrollado por: Ricardo Aral
- * Versión: 1.0
+ * Email: jho.araque84@gmail.com
+ * Versión: 1.1
+ * Fecha: 2025-01-08
+ * 
+ * Estructura:
+ * - 6 secciones documentables (TODAS COMPLETADAS ✅)
+ * - Sistema de navegación por pasos
+ * - Guardado automático
+ * - Exportación múltiple (pendiente)
  */
 
 function App() {
@@ -22,7 +33,7 @@ function App() {
   // ESTADO GLOBAL: Toda la información del reporte
   // ============================================
   const [reportData, setReportData] = useState({
-    // ===== SECCIÓN 1: INFORMACIÓN BÁSICA =====
+    // ===== SECCIÓN 1: INFORMACIÓN BÁSICA ===== ✅
     nombreReporte: '',
     codigoReporte: '',
     categoria: '',
@@ -30,76 +41,32 @@ function App() {
     objetivo: '',
     usuarios: '',
     
-    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA =====
+    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅
     consultaSQL: '',              // Query pegada por el usuario
     tablaOrigen: '',              // Nombre de la tabla/vista origen
-    camposDetectados: [
-      // Array de objetos con estructura:
-      // {
-      //   nombre: 'PERIODO_CODIGO',
-      //   tipo: 'VARCHAR',
-      //   esLlave: true,
-      //   descripcion: 'Código del período académico',
-      //   usadoEnVisuales: [],
-      //   participaEnFiltros: false,
-      //   esMetrica: false
-      // }
-    ],
+    camposDetectados: [],         // Array de campos parseados automáticamente
     
-    // ===== SECCIÓN 3: FILTROS Y PARÁMETROS =====
-    imagenReferenciaFiltros: null,    // File object de screenshot
-    imagenPreviewFiltros: null,       // Base64 para preview
-    filtros: [
-      // Array de objetos con estructura:
-      // {
-      //   id: 1234567890,
-      //   nombre: 'Año',
-      //   campoSQL: 'PERIODO_CODIGO',
-      //   tipoControl: 'Multi-select buttons',
-      //   valores: '2025, 2024, 2023',
-      //   descripcion: 'Filtro para seleccionar año académico'
-      // }
-    ],
+    // ===== SECCIÓN 3: FILTROS Y PARÁMETROS ===== ✅
+    filtros: [],                  // Array de filtros documentados
     
-    // ===== SECCIÓN 4: VISUALIZACIONES =====
-    visualizaciones: [
-      // Array de objetos con estructura:
-      // {
-      //   id: 1234567891,
-      //   titulo: 'Tabla de Materias',
-      //   tipo: 'Tabla',
-      //   imagen: null,              // File object
-      //   camposUtilizados: ['PROGRAMA_NOMBRE', 'CREDITOS'],
-      //   metricasCalculadas: 'Total = SUM(CREDITOS)',
-      //   descripcion: 'Muestra todas las materias por programa'
-      // }
-    ],
+    // ===== SECCIÓN 4: VISUALIZACIONES ===== ✅
+    visualizaciones: [],          // Array de visuales documentados
     
-    // ===== SECCIÓN 5: CONSULTAS ADICIONALES =====
-    consultasAdicionales: [
-      // Array de objetos con estructura:
-      // {
-      //   id: 1234567892,
-      //   nombre: 'SP_ObtenerPensum',
-      //   tipo: 'Stored Procedure',
-      //   codigoSQL: 'CREATE PROCEDURE...',
-      //   parametros: '@ProgramaID INT, @PeriodoID VARCHAR(10)',
-      //   descripcion: 'Obtiene el pensum completo de un programa'
-      // }
-    ],
+    // ===== SECCIÓN 5: CONSULTAS ADICIONALES ===== ✅
+    consultasAdicionales: [],     // Array de stored procedures, functions, etc.
     
-    // ===== SECCIÓN 6: INFORMACIÓN ADICIONAL =====
-    reportesRelacionados: '',         // Nombres de reportes relacionados
-    frecuenciaActualizacion: '',      // Diaria, Semanal, Mensual, etc.
-    volumetria: '',                   // Estimación de registros
-    notasTecnicas: '',                // Notas adicionales
-    historialCambios: '',             // Log de cambios del reporte
+    // ===== SECCIÓN 6: INFORMACIÓN ADICIONAL ===== ✅
+    reportesRelacionados: '',
+    frecuenciaActualizacion: '',
+    volumetria: '',
+    notasTecnicas: '',
+    historialCambios: '',
     
     // ===== METADATOS =====
     documentadoPor: 'Ricardo Aral',
     fechaDocumentacion: new Date().toISOString().split('T')[0],
     versionReporte: 'v1.0',
-    estadoReporte: 'Activo'           // Activo, En desarrollo, Deprecado
+    estadoReporte: 'Activo'
   });
 
   // ============================================
@@ -112,6 +79,43 @@ function App() {
   };
 
   // ============================================
+  // FUNCIONES DE GUARDADO PARA SECCIONES 1-3
+  // (Secciones 4-6 usan setReportData directamente)
+  // ============================================
+
+  /**
+   * Guarda datos de Sección 1: Info Básica
+   */
+  const handleGuardarInfoBasica = (datosActualizados) => {
+    setReportData(prev => ({
+      ...prev,
+      ...datosActualizados
+    }));
+  };
+
+  /**
+   * Guarda datos de Sección 2: Consulta SQL
+   */
+  const handleGuardarConsultaSQL = (datosActualizados) => {
+    setReportData(prev => ({
+      ...prev,
+      consultaSQL: datosActualizados.consultaSQL || prev.consultaSQL,
+      tablaOrigen: datosActualizados.tablaOrigen || prev.tablaOrigen,
+      camposDetectados: datosActualizados.camposDetectados || prev.camposDetectados
+    }));
+  };
+
+  /**
+   * Guarda datos de Sección 3: Filtros
+   */
+  const handleGuardarFiltros = (datosActualizados) => {
+    setReportData(prev => ({
+      ...prev,
+      filtros: datosActualizados.filtros || prev.filtros
+    }));
+  };
+
+  // ============================================
   // FUNCIÓN: Renderizar componente según sección
   // ============================================
   const renderSeccion = () => {
@@ -119,84 +123,56 @@ function App() {
       case 1:
         return (
           <InfoBasica 
-            reportData={reportData} 
-            setReportData={setReportData} 
+            datos={reportData}
+            onGuardar={handleGuardarInfoBasica}
           />
         );
       
       case 2:
         return (
           <ConsultaSQL 
-            reportData={reportData} 
-            setReportData={setReportData} 
+            datos={reportData}
+            onGuardar={handleGuardarConsultaSQL}
           />
         );
       
       case 3:
         return (
           <Filtros 
-            reportData={reportData} 
-            setReportData={setReportData} 
+            datos={reportData}
+            onGuardar={handleGuardarFiltros}
           />
         );
       
       case 4:
         return (
           <Visualizaciones 
-            reportData={reportData} 
-            setReportData={setReportData} 
+            reportData={reportData}
+            setReportData={setReportData}
           />
         );
       
       case 5:
-        // PENDIENTE: Componente ConsultasAdicionales
         return (
-          <div style={{
-            padding: '4rem 2rem', 
-            textAlign: 'center',
-            background: '#fafafa',
-            borderRadius: '12px',
-            margin: '2rem'
-          }}>
-            <h2 style={{fontSize: '2rem', marginBottom: '1rem'}}>
-              🔄 Sección 5: Consultas Adicionales
-            </h2>
-            <p style={{color: '#666', fontSize: '1.1rem'}}>
-              Esta sección está en desarrollo...
-            </p>
-            <p style={{color: '#999', fontSize: '0.95rem', marginTop: '0.5rem'}}>
-              Aquí podrás documentar stored procedures, funciones y queries adicionales
-            </p>
-          </div>
+          <ConsultasAdicionales 
+            reportData={reportData}
+            setReportData={setReportData}
+          />
         );
       
       case 6:
-        // PENDIENTE: Componente InfoAdicional
         return (
-          <div style={{
-            padding: '4rem 2rem', 
-            textAlign: 'center',
-            background: '#fafafa',
-            borderRadius: '12px',
-            margin: '2rem'
-          }}>
-            <h2 style={{fontSize: '2rem', marginBottom: '1rem'}}>
-              📝 Sección 6: Información Adicional
-            </h2>
-            <p style={{color: '#666', fontSize: '1.1rem'}}>
-              Esta sección está en desarrollo...
-            </p>
-            <p style={{color: '#999', fontSize: '0.95rem', marginTop: '0.5rem'}}>
-              Aquí podrás agregar reportes relacionados, frecuencia de actualización, etc.
-            </p>
-          </div>
+          <InfoAdicional 
+            reportData={reportData}
+            setReportData={setReportData}
+          />
         );
       
       default:
         return (
           <InfoBasica 
-            reportData={reportData} 
-            setReportData={setReportData} 
+            datos={reportData}
+            onGuardar={handleGuardarInfoBasica}
           />
         );
     }
@@ -235,7 +211,7 @@ function App() {
     }
 
     // Sección 6: Info Adicional (opcional)
-    if (reportData.frecuenciaActualizacion || reportData.notasTecnicas) {
+    if (reportData.frecuenciaActualizacion || reportData.notasTecnicas || reportData.historialCambios) {
       seccionesCompletadas++;
     }
 
@@ -360,7 +336,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 1.0</span>
+          <span>🗂️ Versión 1.1</span>
         </p>
       </footer>
 

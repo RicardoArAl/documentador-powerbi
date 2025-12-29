@@ -1,0 +1,244 @@
+/* ===================================
+   SECCIÓN 6: INFORMACIÓN ADICIONAL - ESTILOS
+   =================================== */
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ============ HEADER ============ */
+.header {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.header h2 {
+  font-size: 2rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.descripcion {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.opcional {
+  color: #888;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* ============ FORMULARIO ============ */
+.formulario {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ============ FORM GROUPS ============ */
+.formGroup {
+  margin-bottom: 2rem;
+}
+
+.formGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.icono {
+  font-size: 1.3rem;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 0.9rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #3f51b5;
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #aaa;
+}
+
+.select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 3rem;
+  appearance: none;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.hint {
+  display: block;
+  margin-top: 0.5rem;
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ============ INFO BOX ============ */
+.infoBox {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border-left: 4px solid #3f51b5;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.infoIcono {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.infoTexto {
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.infoTexto strong {
+  color: #3f51b5;
+}
+
+/* ============ RESUMEN ============ */
+.resumen {
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  color: white;
+}
+
+.resumen h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.resumenGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.resumenItem {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+
+.resumenItem:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.resumenLabel {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.resumenValor {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .formulario {
+    padding: 1.5rem;
+  }
+
+  .header h2 {
+    font-size: 1.6rem;
+  }
+
+  .resumen {
+    padding: 1.5rem;
+  }
+
+  .resumenGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .infoBox {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ============ ANIMACIONES ============ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.formGroup {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.formGroup:nth-child(1) { animation-delay: 0.05s; }
+.formGroup:nth-child(2) { animation-delay: 0.1s; }
+.formGroup:nth-child(3) { animation-delay: 0.15s; }
+.formGroup:nth-child(4) { animation-delay: 0.2s; }
+.formGroup:nth-child(5) { animation-delay: 0.25s; }
