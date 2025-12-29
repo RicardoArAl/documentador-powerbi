@@ -52,6 +52,23 @@
   line-height: 1.6;
 }
 
+/* NUEVO: Query Box */
+.queryBox {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.queryBox code {
+  color: #ecf0f1;
+}
+
 /* Ejemplo de formato */
 .ejemploFormato {
   background: #f8f9fa;
@@ -94,6 +111,15 @@
 .textarea:focus {
   outline: none;
   border-color: #3498db;
+}
+
+/* NUEVO: Sección del botón */
+.seccionBoton {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 25px;
 }
 
 /* Botón analizar */
@@ -203,6 +229,21 @@
 }
 
 .selectTipo:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* NUEVO: Input de longitud */
+.inputLongitud {
+  width: 80px;
+  padding: 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.inputLongitud:focus {
   outline: none;
   border-color: #3498db;
 }

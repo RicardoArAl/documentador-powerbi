@@ -1,13 +1,91 @@
 /**
- * PARSER DE RESULTADOS SQL SERVER
- * 
- * Este archivo contiene funciones para analizar resultados copiados
- * desde SQL Server Management Studio y extraer automáticamente:
- * - Nombres de columnas
- * - Tipos de datos (inferidos)
- * - Detección de llaves primarias
- * - Generación de descripciones
+ * =====================================================
+ * SQL PARSER MEJORADO v2.0
+ * =====================================================
+ * Ahora soporta 3 modos:
+ * 1. Parsear estructura de columnas (INFORMATION_SCHEMA)
+ * 2. Parsear resultados de datos (SELECT * FROM)
+ * 3. Combinar ambas fuentes para máxima precisión
+ * =====================================================
  */
+
+/**
+ * NUEVA FUNCIÓN: Parsea la estructura de columnas desde INFORMATION_SCHEMA
+ * @param {string} textoEstructura - Resultado del query INFORMATION_SCHEMA.COLUMNS
+ * @returns {array} - Array de campos con información detallada
+ */
+export function parsearEstructuraColumnas(textoEstructura) {
+  if (!textoEstructura || textoEstructura.trim() === '') {
+    return [];
+  }
+
+  try {
+    // 1. Dividir en líneas
+    const lineas = textoEstructura
+      .split('\n')
+      .map(linea => linea.trim())
+      .filter(linea => linea.length > 0);
+
+    if (lineas.length < 2) {
+      return [];
+    }
+
+    // 2. Extraer columnas del encabezado
+    const columnas = extraerColumnas(lineas[0]);
+    
+    // Validar que tengamos al menos COLUMN_NAME y DATA_TYPE
+    const tieneColumnName = columnas.some(c => c.toUpperCase().includes('COLUMN') || c.toUpperCase().includes('CAMPO'));
+    const tieneDataType = columnas.some(c => c.toUpperCase().includes('DATA_TYPE') || c.toUpperCase().includes('TIPO'));
+    
+    if (!tieneColumnName || !tieneDataType) {
+      console.warn('No se detectaron columnas COLUMN_NAME y DATA_TYPE');
+      return [];
+    }
+
+    // 3. Extraer filas de datos
+    const filasDetectadas = extraerFilas(lineas.slice(1), columnas.length);
+
+    // 4. Identificar índices de columnas importantes
+    const idxNombre = columnas.findIndex(c => 
+      c.toUpperCase().includes('COLUMN_NAME') || c.toUpperCase().includes('CAMPO')
+    );
+    const idxTipo = columnas.findIndex(c => 
+      c.toUpperCase().includes('DATA_TYPE') || c.toUpperCase().includes('TIPO')
+    );
+    const idxLongitud = columnas.findIndex(c => 
+      c.toUpperCase().includes('LENGTH') || c.toUpperCase().includes('LONGITUD')
+    );
+    const idxNulable = columnas.findIndex(c => 
+      c.toUpperCase().includes('NULLABLE') || c.toUpperCase().includes('NULO')
+    );
+
+    // 5. Construir campos
+    const campos = filasDetectadas.map(fila => {
+      const nombreCampo = fila[idxNombre] || '';
+      const tipoDato = mapearTipoSQL(fila[idxTipo] || 'VARCHAR');
+      const longitud = idxLongitud >= 0 ? (fila[idxLongitud] || '') : '';
+      const aceptaNulos = idxNulable >= 0 ? (fila[idxNulable]?.toUpperCase() === 'YES' || fila[idxNulable] === '1') : false;
+
+      return {
+        nombre: nombreCampo,
+        tipo: tipoDato,
+        longitud: longitud === 'NULL' ? '' : longitud,
+        aceptaNulos: aceptaNulos,
+        esLlave: detectarSiEsLlave(nombreCampo),
+        descripcion: generarDescripcion(nombreCampo),
+        usadoEnVisuales: [],
+        participaEnFiltros: false,
+        esMetrica: false
+      };
+    });
+
+    return campos;
+
+  } catch (error) {
+    console.error('Error parseando estructura de columnas:', error);
+    return [];
+  }
+}
 
 /**
  * Función principal que parsea el texto completo pegado por el usuario
@@ -44,6 +122,8 @@ export function parsearResultadosSQL(textoResultados) {
       return {
         nombre: nombreColumna,
         tipo: inferirTipoDato(valoresColumna),
+        longitud: '',
+        aceptaNulos: false,
         esLlave: detectarSiEsLlave(nombreColumna),
         descripcion: generarDescripcion(nombreColumna),
         usadoEnVisuales: [],
@@ -62,6 +142,90 @@ export function parsearResultadosSQL(textoResultados) {
     console.error('Error parseando resultados:', error);
     return { tablaOrigen: '', campos: [] };
   }
+}
+
+/**
+ * NUEVA FUNCIÓN: Combina datos de estructura + resultados para máxima precisión
+ * @param {array} camposEstructura - Campos parseados desde INFORMATION_SCHEMA
+ * @param {array} camposResultados - Campos parseados desde SELECT
+ * @returns {array} - Campos combinados con la mejor información de ambas fuentes
+ */
+export function combinarDatosColumnas(camposEstructura, camposResultados) {
+  // Si solo tenemos una fuente, retornar esa
+  if (camposEstructura.length === 0) return camposResultados;
+  if (camposResultados.length === 0) return camposEstructura;
+
+  // Combinar: usar estructura como base y enriquecer con resultados
+  const camposCombinados = camposEstructura.map(campoEst => {
+    // Buscar campo correspondiente en resultados
+    const campoRes = camposResultados.find(cr => 
+      cr.nombre.toUpperCase() === campoEst.nombre.toUpperCase()
+    );
+
+    if (campoRes) {
+      // Combinar: priorizar tipo de estructura, pero enriquecer con inferencia de resultados
+      return {
+        ...campoEst,
+        // Si el tipo inferido es más específico, usarlo
+        tipo: campoEst.tipo === 'VARCHAR' && campoRes.tipo !== 'VARCHAR' 
+          ? campoRes.tipo 
+          : campoEst.tipo,
+        // Mantener descripción de estructura
+        descripcion: campoEst.descripcion || campoRes.descripcion
+      };
+    }
+
+    return campoEst;
+  });
+
+  // Agregar campos que existan en resultados pero no en estructura
+  camposResultados.forEach(campoRes => {
+    const existeEnEstructura = camposCombinados.some(c => 
+      c.nombre.toUpperCase() === campoRes.nombre.toUpperCase()
+    );
+    if (!existeEnEstructura) {
+      camposCombinados.push(campoRes);
+    }
+  });
+
+  return camposCombinados;
+}
+
+/**
+ * Mapea tipos de SQL Server a tipos simplificados
+ */
+function mapearTipoSQL(tipoOriginal) {
+  const tipo = tipoOriginal.toUpperCase();
+  
+  // Mapeo de tipos comunes
+  const mapeo = {
+    'VARCHAR': 'VARCHAR',
+    'NVARCHAR': 'NVARCHAR',
+    'CHAR': 'VARCHAR',
+    'NCHAR': 'NVARCHAR',
+    'TEXT': 'TEXT',
+    'NTEXT': 'TEXT',
+    'INT': 'INT',
+    'INTEGER': 'INT',
+    'BIGINT': 'BIGINT',
+    'SMALLINT': 'INT',
+    'TINYINT': 'INT',
+    'DECIMAL': 'DECIMAL',
+    'NUMERIC': 'NUMERIC',
+    'FLOAT': 'FLOAT',
+    'REAL': 'FLOAT',
+    'MONEY': 'DECIMAL',
+    'SMALLMONEY': 'DECIMAL',
+    'DATE': 'DATE',
+    'DATETIME': 'DATETIME',
+    'DATETIME2': 'DATETIME2',
+    'SMALLDATETIME': 'DATETIME',
+    'TIME': 'DATETIME',
+    'BIT': 'BIT',
+    'BOOLEAN': 'BIT'
+  };
+
+  return mapeo[tipo] || 'VARCHAR';
 }
 
 /**

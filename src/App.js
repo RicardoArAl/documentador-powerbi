@@ -5,7 +5,7 @@ import Filtros from './components/Filtros/Filtros';
 import Visualizaciones from './components/Visualizaciones/Visualizaciones';
 import ConsultasAdicionales from './components/ConsultasAdicionales/ConsultasAdicionales';
 import InfoAdicional from './components/InfoAdicional/InfoAdicional';
-// ===== NUEVOS IMPORTS: OUTPUTS ===== ✅
+// ===== IMPORTS: OUTPUTS ===== ✅
 import VistaResumen from './components/Outputs/VistaResumen';
 import DiccionarioDatos from './components/Outputs/DiccionarioDatos';
 import ManualTecnico from './components/Outputs/ManualTecnico';
@@ -17,15 +17,13 @@ import './styles/global.css';
  * 
  * Desarrollado por: Ricardo Aral
  * Email: jho.araque84@gmail.com
- * Versión: 2.0 (CON OUTPUTS COMPLETOS) ✅
+ * Versión: 2.1 (SECCIÓN 2 MEJORADA) ✅
  * Fecha: 2025-01-08
  * 
- * Estructura:
- * - 6 secciones documentables (TODAS COMPLETADAS ✅)
- * - 1 sección de outputs con 3 componentes (NUEVA ✅)
- * - Sistema de navegación por pasos
- * - Guardado automático
- * - Exportación múltiple (Excel, PDF, Vista Resumen)
+ * NOVEDADES v2.1:
+ * - Sección 2 ahora soporta 2 campos: Estructura de columnas + Resultados de datos
+ * - Parser mejorado que combina ambas fuentes
+ * - Diccionario de Datos actualizado con columnas de Longitud y Acepta Nulos
  */
 
 function App() {
@@ -37,7 +35,7 @@ function App() {
   // ============================================
   // ESTADO: Sub-sección de Outputs
   // ============================================
-  const [outputActivo, setOutputActivo] = useState('resumen'); // 'resumen', 'diccionario', 'manual'
+  const [outputActivo, setOutputActivo] = useState('resumen');
 
   // ============================================
   // ESTADO GLOBAL: Toda la información del reporte
@@ -51,19 +49,20 @@ function App() {
     objetivo: '',
     usuarios: '',
     
-    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅
-    consultaSQL: '',              // Query pegada por el usuario
+    // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅ MEJORADO v2.1
+    consultaSQL: '',              // Query SELECT pegada por el usuario
+    estructuraColumnas: '',       // NUEVO: Estructura desde INFORMATION_SCHEMA
     tablaOrigen: '',              // Nombre de la tabla/vista origen
     camposDetectados: [],         // Array de campos parseados automáticamente
     
     // ===== SECCIÓN 3: FILTROS Y PARÁMETROS ===== ✅
-    filtros: [],                  // Array de filtros documentados
+    filtros: [],
     
     // ===== SECCIÓN 4: VISUALIZACIONES ===== ✅
-    visualizaciones: [],          // Array de visuales documentados
+    visualizaciones: [],
     
     // ===== SECCIÓN 5: CONSULTAS ADICIONALES ===== ✅
-    consultasAdicionales: [],     // Array de stored procedures, functions, etc.
+    consultasAdicionales: [],
     
     // ===== SECCIÓN 6: INFORMACIÓN ADICIONAL ===== ✅
     reportesRelacionados: '',
@@ -84,17 +83,14 @@ function App() {
   // ============================================
   const handleCambiarSeccion = (numeroSeccion) => {
     setSeccionActual(numeroSeccion);
-    // Si entra a outputs, resetear a resumen
     if (numeroSeccion === 7) {
       setOutputActivo('resumen');
     }
-    // Scroll al inicio al cambiar de sección
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ============================================
-  // FUNCIONES DE GUARDADO PARA SECCIONES 1-3
-  // (Secciones 4-6 usan setReportData directamente)
+  // FUNCIONES DE GUARDADO
   // ============================================
 
   /**
@@ -108,12 +104,13 @@ function App() {
   };
 
   /**
-   * Guarda datos de Sección 2: Consulta SQL
+   * Guarda datos de Sección 2: Consulta SQL (ACTUALIZADO v2.1)
    */
   const handleGuardarConsultaSQL = (datosActualizados) => {
     setReportData(prev => ({
       ...prev,
       consultaSQL: datosActualizados.consultaSQL || prev.consultaSQL,
+      estructuraColumnas: datosActualizados.estructuraColumnas || prev.estructuraColumnas, // NUEVO
       tablaOrigen: datosActualizados.tablaOrigen || prev.tablaOrigen,
       camposDetectados: datosActualizados.camposDetectados || prev.camposDetectados
     }));
@@ -133,17 +130,11 @@ function App() {
   // FUNCIONES DE EXPORTACIÓN PARA OUTPUTS
   // ============================================
 
-  /**
-   * Navega al Diccionario de Datos desde Vista Resumen
-   */
   const handleExportarDiccionario = () => {
     setOutputActivo('diccionario');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /**
-   * Navega al Manual Técnico desde Vista Resumen
-   */
   const handleExportarManual = () => {
     setOutputActivo('manual');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -202,7 +193,6 @@ function App() {
           />
         );
       
-      // ===== NUEVA SECCIÓN 7: OUTPUTS ===== ✅
       case 7:
         return renderOutputs();
       
@@ -312,32 +302,26 @@ function App() {
     let seccionesCompletadas = 0;
     const totalSecciones = 6;
 
-    // Sección 1: Info Básica (requerida)
     if (reportData.nombreReporte && reportData.codigoReporte && reportData.objetivo) {
       seccionesCompletadas++;
     }
 
-    // Sección 2: Consulta SQL (requerida)
     if (reportData.consultaSQL && reportData.camposDetectados.length > 0) {
       seccionesCompletadas++;
     }
 
-    // Sección 3: Filtros (opcional, se cuenta si tiene datos)
     if (reportData.filtros.length > 0) {
       seccionesCompletadas++;
     }
 
-    // Sección 4: Visualizaciones (opcional, se cuenta si tiene datos)
     if (reportData.visualizaciones.length > 0) {
       seccionesCompletadas++;
     }
 
-    // Sección 5: Consultas Adicionales (opcional)
     if (reportData.consultasAdicionales.length > 0) {
       seccionesCompletadas++;
     }
 
-    // Sección 6: Info Adicional (opcional)
     if (reportData.frecuenciaActualizacion || reportData.notasTecnicas || reportData.historialCambios) {
       seccionesCompletadas++;
     }
@@ -366,7 +350,6 @@ function App() {
       <div className="progress-bar">
         <div className="progress-steps">
           
-          {/* PASO 1: Información Básica */}
           <div 
             className={`step ${seccionActual === 1 ? 'active' : ''} ${seccionActual > 1 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(1)}
@@ -376,7 +359,6 @@ function App() {
             <span className="step-label">Info Básica</span>
           </div>
           
-          {/* PASO 2: Consulta SQL */}
           <div 
             className={`step ${seccionActual === 2 ? 'active' : ''} ${seccionActual > 2 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(2)}
@@ -386,7 +368,6 @@ function App() {
             <span className="step-label">Consulta SQL</span>
           </div>
           
-          {/* PASO 3: Filtros */}
           <div 
             className={`step ${seccionActual === 3 ? 'active' : ''} ${seccionActual > 3 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(3)}
@@ -396,7 +377,6 @@ function App() {
             <span className="step-label">Filtros</span>
           </div>
           
-          {/* PASO 4: Visualizaciones */}
           <div 
             className={`step ${seccionActual === 4 ? 'active' : ''} ${seccionActual > 4 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(4)}
@@ -406,7 +386,6 @@ function App() {
             <span className="step-label">Visualizaciones</span>
           </div>
           
-          {/* PASO 5: Consultas Adicionales */}
           <div 
             className={`step ${seccionActual === 5 ? 'active' : ''} ${seccionActual > 5 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(5)}
@@ -416,7 +395,6 @@ function App() {
             <span className="step-label">Consultas</span>
           </div>
           
-          {/* PASO 6: Información Adicional */}
           <div 
             className={`step ${seccionActual === 6 ? 'active' : ''} ${seccionActual > 6 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(6)}
@@ -426,7 +404,6 @@ function App() {
             <span className="step-label">Info Adicional</span>
           </div>
 
-          {/* ===== NUEVO PASO 7: OUTPUTS ===== ✅ */}
           <div 
             className={`step ${seccionActual === 7 ? 'active' : ''}`}
             onClick={() => handleCambiarSeccion(7)}
@@ -473,7 +450,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 2.0 (CON OUTPUTS)</span>
+          <span>🗂️ Versión 2.1 (SECCIÓN 2 MEJORADA)</span>
         </p>
       </footer>
 

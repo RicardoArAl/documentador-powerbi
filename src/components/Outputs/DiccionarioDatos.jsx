@@ -4,11 +4,10 @@ import { saveAs } from 'file-saver';
 import styles from './DiccionarioDatos.module.css';
 
 /**
- * COMPONENTE: Diccionario de Datos
+ * COMPONENTE: Diccionario de Datos v2.0
  * 
  * Genera un archivo Excel con todos los campos del reporte documentado.
- * Incluye análisis de uso: en qué visuales se usa, si participa en filtros, 
- * si es métrica, etc.
+ * NUEVO: Incluye columnas de Longitud y Acepta Nulos
  * 
  * Props:
  * - reportData: objeto con toda la información del reporte
@@ -44,10 +43,15 @@ const DiccionarioDatos = ({ reportData }) => {
       // Determinar si es llave
       const esLlave = campo.esLlave ? 'Sí' : 'No';
 
+      // NUEVO: Acepta nulos
+      const aceptaNulos = campo.aceptaNulos ? 'Sí' : 'No';
+
       return {
         'Campo': campo.nombre || '',
         'Tabla/Vista': reportData.tablaOrigen || '',
         'Tipo de Dato': campo.tipo || '',
+        'Longitud': campo.longitud || 'N/A',
+        'Acepta Nulos': aceptaNulos,
         'Es Llave Primaria': esLlave,
         'Es Métrica': esMetrica,
         'Descripción': campo.descripcion || '',
@@ -88,6 +92,9 @@ const DiccionarioDatos = ({ reportData }) => {
     const camposEnFiltros = reportData.camposDetectados.filter(c => 
       c.participaEnFiltros
     ).length;
+    const camposNulables = reportData.camposDetectados.filter(c => 
+      c.aceptaNulos
+    ).length;
 
     const resumenEstadistico = [
       ['RESUMEN ESTADÍSTICO'],
@@ -98,6 +105,7 @@ const DiccionarioDatos = ({ reportData }) => {
       ['Métricas', totalMetricas],
       ['Campos Usados en Visuales', camposUsados],
       ['Campos en Filtros', camposEnFiltros],
+      ['Campos que Aceptan Nulos', camposNulables],
       ['Total de Filtros', reportData.filtros?.length || 0],
       ['Total de Visualizaciones', reportData.visualizaciones?.length || 0],
       ['Total de Consultas Adicionales', reportData.consultasAdicionales?.length || 0]
@@ -162,6 +170,8 @@ const DiccionarioDatos = ({ reportData }) => {
               <tr>
                 <th>Campo</th>
                 <th>Tipo</th>
+                <th>Longitud</th>
+                <th>Nulos</th>
                 <th>Llave</th>
                 <th>Métrica</th>
                 <th>Descripción</th>
@@ -175,6 +185,12 @@ const DiccionarioDatos = ({ reportData }) => {
                   <td className={styles.fieldName}>{campo.nombre}</td>
                   <td>
                     <span className={styles.badge}>{campo.tipo}</span>
+                  </td>
+                  <td className={styles.centered}>
+                    {campo.longitud || '—'}
+                  </td>
+                  <td className={styles.centered}>
+                    {campo.aceptaNulos ? '✅' : '—'}
                   </td>
                   <td className={styles.centered}>
                     {campo.esLlave ? '✅' : '—'}
@@ -238,7 +254,7 @@ const DiccionarioDatos = ({ reportData }) => {
             <div>
               <p className={styles.infoLabel}>Hoja 2: Diccionario de Campos</p>
               <p className={styles.infoDesc}>
-                Tabla completa con todos los campos y su análisis
+                Tabla completa con todos los campos y su análisis (incluye longitud y nulos)
               </p>
             </div>
           </div>
@@ -283,6 +299,12 @@ const DiccionarioDatos = ({ reportData }) => {
             </div>
             <div className={styles.statLabel}>Usados en Visuales</div>
           </div>
+          <div className={styles.statCard}>
+            <div className={styles.statNumber}>
+              {reportData.camposDetectados.filter(c => c.aceptaNulos).length}
+            </div>
+            <div className={styles.statLabel}>Aceptan Nulos</div>
+          </div>
         </div>
       )}
 
@@ -317,11 +339,11 @@ const DiccionarioDatos = ({ reportData }) => {
           </li>
           <li>
             <strong>Hoja 2:</strong> Diccionario completo con todos los campos detectados, 
-            incluyendo tipo de dato, descripción, uso en visuales y filtros
+            incluyendo tipo de dato, longitud, nulos, descripción, uso en visuales y filtros
           </li>
           <li>
             <strong>Hoja 3:</strong> Resumen estadístico con totales agregados 
-            (cantidad de campos, llaves, métricas, etc.)
+            (cantidad de campos, llaves, métricas, campos que aceptan nulos, etc.)
           </li>
           <li>
             El archivo se descarga automáticamente con el formato: 
