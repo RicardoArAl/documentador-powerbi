@@ -5,6 +5,10 @@ import Filtros from './components/Filtros/Filtros';
 import Visualizaciones from './components/Visualizaciones/Visualizaciones';
 import ConsultasAdicionales from './components/ConsultasAdicionales/ConsultasAdicionales';
 import InfoAdicional from './components/InfoAdicional/InfoAdicional';
+// ===== NUEVOS IMPORTS: OUTPUTS ===== ✅
+import VistaResumen from './components/Outputs/VistaResumen';
+import DiccionarioDatos from './components/Outputs/DiccionarioDatos';
+import ManualTecnico from './components/Outputs/ManualTecnico';
 import './styles/global.css';
 
 /**
@@ -13,14 +17,15 @@ import './styles/global.css';
  * 
  * Desarrollado por: Ricardo Aral
  * Email: jho.araque84@gmail.com
- * Versión: 1.1
+ * Versión: 2.0 (CON OUTPUTS COMPLETOS) ✅
  * Fecha: 2025-01-08
  * 
  * Estructura:
  * - 6 secciones documentables (TODAS COMPLETADAS ✅)
+ * - 1 sección de outputs con 3 componentes (NUEVA ✅)
  * - Sistema de navegación por pasos
  * - Guardado automático
- * - Exportación múltiple (pendiente)
+ * - Exportación múltiple (Excel, PDF, Vista Resumen)
  */
 
 function App() {
@@ -28,6 +33,11 @@ function App() {
   // ESTADO: Sección actual (navegación)
   // ============================================
   const [seccionActual, setSeccionActual] = useState(1);
+
+  // ============================================
+  // ESTADO: Sub-sección de Outputs
+  // ============================================
+  const [outputActivo, setOutputActivo] = useState('resumen'); // 'resumen', 'diccionario', 'manual'
 
   // ============================================
   // ESTADO GLOBAL: Toda la información del reporte
@@ -74,6 +84,10 @@ function App() {
   // ============================================
   const handleCambiarSeccion = (numeroSeccion) => {
     setSeccionActual(numeroSeccion);
+    // Si entra a outputs, resetear a resumen
+    if (numeroSeccion === 7) {
+      setOutputActivo('resumen');
+    }
     // Scroll al inicio al cambiar de sección
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -113,6 +127,26 @@ function App() {
       ...prev,
       filtros: datosActualizados.filtros || prev.filtros
     }));
+  };
+
+  // ============================================
+  // FUNCIONES DE EXPORTACIÓN PARA OUTPUTS
+  // ============================================
+
+  /**
+   * Navega al Diccionario de Datos desde Vista Resumen
+   */
+  const handleExportarDiccionario = () => {
+    setOutputActivo('diccionario');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /**
+   * Navega al Manual Técnico desde Vista Resumen
+   */
+  const handleExportarManual = () => {
+    setOutputActivo('manual');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ============================================
@@ -168,6 +202,10 @@ function App() {
           />
         );
       
+      // ===== NUEVA SECCIÓN 7: OUTPUTS ===== ✅
+      case 7:
+        return renderOutputs();
+      
       default:
         return (
           <InfoBasica 
@@ -176,6 +214,95 @@ function App() {
           />
         );
     }
+  };
+
+  /**
+   * Renderiza la sección de Outputs con sus 3 sub-componentes
+   */
+  const renderOutputs = () => {
+    return (
+      <div>
+        {/* Selector de output */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => setOutputActivo('resumen')}
+            style={{
+              padding: '0.8rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '700',
+              border: outputActivo === 'resumen' ? '2px solid #667eea' : '2px solid #e5e7eb',
+              background: outputActivo === 'resumen' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white',
+              color: outputActivo === 'resumen' ? 'white' : '#4b5563',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: outputActivo === 'resumen' ? '0 4px 15px rgba(102, 126, 234, 0.3)' : 'none'
+            }}
+          >
+            📊 Vista Resumen
+          </button>
+
+          <button
+            onClick={() => setOutputActivo('diccionario')}
+            style={{
+              padding: '0.8rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '700',
+              border: outputActivo === 'diccionario' ? '2px solid #43a047' : '2px solid #e5e7eb',
+              background: outputActivo === 'diccionario' ? 'linear-gradient(135deg, #43a047 0%, #2e7d32 100%)' : 'white',
+              color: outputActivo === 'diccionario' ? 'white' : '#4b5563',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: outputActivo === 'diccionario' ? '0 4px 15px rgba(67, 160, 71, 0.3)' : 'none'
+            }}
+          >
+            📋 Diccionario Excel
+          </button>
+
+          <button
+            onClick={() => setOutputActivo('manual')}
+            style={{
+              padding: '0.8rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '700',
+              border: outputActivo === 'manual' ? '2px solid #3f51b5' : '2px solid #e5e7eb',
+              background: outputActivo === 'manual' ? 'linear-gradient(135deg, #3f51b5 0%, #1a237e 100%)' : 'white',
+              color: outputActivo === 'manual' ? 'white' : '#4b5563',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: outputActivo === 'manual' ? '0 4px 15px rgba(63, 81, 181, 0.3)' : 'none'
+            }}
+          >
+            📄 Manual PDF
+          </button>
+        </div>
+
+        {/* Renderizar componente según selección */}
+        {outputActivo === 'resumen' && (
+          <VistaResumen 
+            reportData={reportData}
+            onExportarDiccionario={handleExportarDiccionario}
+            onExportarManual={handleExportarManual}
+          />
+        )}
+
+        {outputActivo === 'diccionario' && (
+          <DiccionarioDatos reportData={reportData} />
+        )}
+
+        {outputActivo === 'manual' && (
+          <ManualTecnico reportData={reportData} />
+        )}
+      </div>
+    );
   };
 
   // ============================================
@@ -291,12 +418,22 @@ function App() {
           
           {/* PASO 6: Información Adicional */}
           <div 
-            className={`step ${seccionActual === 6 ? 'active' : ''}`}
+            className={`step ${seccionActual === 6 ? 'active' : ''} ${seccionActual > 6 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(6)}
             title="Información Adicional (Opcional)"
           >
             <span className="step-number">6</span>
             <span className="step-label">Info Adicional</span>
+          </div>
+
+          {/* ===== NUEVO PASO 7: OUTPUTS ===== ✅ */}
+          <div 
+            className={`step ${seccionActual === 7 ? 'active' : ''}`}
+            onClick={() => handleCambiarSeccion(7)}
+            title="Exportaciones y Resumen Final"
+          >
+            <span className="step-number">7</span>
+            <span className="step-label">Outputs</span>
           </div>
           
         </div>
@@ -318,7 +455,7 @@ function App() {
           </button>
         )}
         
-        {seccionActual < 6 && (
+        {seccionActual < 7 && (
           <button 
             className="btn-nav btn-next"
             onClick={() => handleCambiarSeccion(seccionActual + 1)}
@@ -336,7 +473,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 1.1</span>
+          <span>🗂️ Versión 2.0 (CON OUTPUTS)</span>
         </p>
       </footer>
 
