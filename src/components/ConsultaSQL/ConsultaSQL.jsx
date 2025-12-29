@@ -11,14 +11,14 @@ const ConsultaSQL = ({ datos, onGuardar }) => {
   const [mensajeValidacion, setMensajeValidacion] = useState('');
   const [mostrarTabla, setMostrarTabla] = useState(false);
   
-  // NUEVO: Estado para mostrar/ocultar queries de ayuda
+  // Estado para mostrar/ocultar queries de ayuda
   const [mostrarQueryBasico, setMostrarQueryBasico] = useState(false);
   const [mostrarQueryCompleto, setMostrarQueryCompleto] = useState(false);
   const [mostrarQueryPKs, setMostrarQueryPKs] = useState(false);
   const [mostrarQueryEjemplo, setMostrarQueryEjemplo] = useState(false);
 
   /**
-   * CORRECCIÓN: Cargar datos guardados cuando el componente se monta
+   * Cargar datos guardados cuando el componente se monta
    */
   useEffect(() => {
     if (datos.estructuraColumnas) {
@@ -34,10 +34,10 @@ const ConsultaSQL = ({ datos, onGuardar }) => {
       setCampos(datos.camposDetectados);
       setMostrarTabla(true);
     }
-  }, []); // Solo ejecutar al montar el componente
+  }, []);
 
   /**
-   * NUEVA FUNCIÓN: Copia un query al portapapeles
+   * Copia un query al portapapeles
    */
   const copiarQuery = (query) => {
     navigator.clipboard.writeText(query);
@@ -46,7 +46,7 @@ const ConsultaSQL = ({ datos, onGuardar }) => {
   };
 
   /**
-   * NUEVA FUNCIÓN: Genera el query básico con el nombre de tabla actual
+   * Genera el query básico con el nombre de tabla actual
    */
   const generarQueryBasico = () => {
     const nombreTabla = tablaOrigen.trim() || 'TuTabla';
@@ -61,7 +61,7 @@ ORDER BY ORDINAL_POSITION;`;
   };
 
   /**
-   * NUEVA FUNCIÓN: Genera el query completo con el nombre de tabla actual
+   * Genera el query completo con el nombre de tabla actual
    */
   const generarQueryCompleto = () => {
     const nombreTabla = tablaOrigen.trim() || 'TuTabla';
@@ -84,7 +84,7 @@ ORDER BY c.ORDINAL_POSITION;`;
   };
 
   /**
-   * NUEVA FUNCIÓN: Genera el query con PKs con el nombre de tabla actual
+   * Genera el query con PKs con el nombre de tabla actual
    */
   const generarQueryPKs = () => {
     const nombreTabla = tablaOrigen.trim() || 'TuTabla';
@@ -111,7 +111,7 @@ ORDER BY c.ORDINAL_POSITION;`;
   };
 
   /**
-   * NUEVA FUNCIÓN: Genera el query de ejemplo de datos
+   * Genera el query de ejemplo de datos
    */
   const generarQueryEjemplo = () => {
     const nombreTabla = tablaOrigen.trim() || 'TuTabla';
@@ -130,6 +130,7 @@ ORDER BY c.ORDINAL_POSITION;`;
 
     try {
       let camposFinales = [];
+      let mensajeFinal = '';
 
       // CASO 1: Solo estructura de columnas
       if (textoEstructura.trim() && !textoResultados.trim()) {
@@ -139,7 +140,7 @@ ORDER BY c.ORDINAL_POSITION;`;
           return;
         }
         camposFinales = estructuraParseada;
-        setMensajeValidacion(`✅ Se detectaron ${estructuraParseada.length} columnas desde la estructura`);
+        mensajeFinal = `✅ Se detectaron ${estructuraParseada.length} columnas desde la estructura`;
       }
       
       // CASO 2: Solo resultados de datos
@@ -156,7 +157,13 @@ ORDER BY c.ORDINAL_POSITION;`;
           return;
         }
         camposFinales = resultado.campos;
-        setMensajeValidacion(`✅ Se detectaron ${resultado.campos.length} columnas desde los resultados`);
+        
+        // MOSTRAR ADVERTENCIA SI NO HAY ENCABEZADOS
+        if (resultado.advertencia) {
+          mensajeFinal = resultado.advertencia;
+        } else {
+          mensajeFinal = `✅ Se detectaron ${resultado.campos.length} columnas desde los resultados`;
+        }
       }
       
       // CASO 3: Ambos (ÓPTIMO - combina información)
@@ -171,14 +178,19 @@ ORDER BY c.ORDINAL_POSITION;`;
 
         // Combinar ambas fuentes para obtener la mejor información
         camposFinales = combinarDatosColumnas(estructuraParseada, resultadoParseado.campos);
-        setMensajeValidacion(
-          `✅ Se combinaron ${camposFinales.length} columnas (estructura + datos de ejemplo)`
-        );
+        
+        // Mostrar advertencia si hay
+        if (resultadoParseado.advertencia) {
+          mensajeFinal = `✅ Se combinaron ${camposFinales.length} columnas. ${resultadoParseado.advertencia}`;
+        } else {
+          mensajeFinal = `✅ Se combinaron ${camposFinales.length} columnas (estructura + datos de ejemplo)`;
+        }
       }
 
       // Actualizar estado
       setCampos(camposFinales);
       setMostrarTabla(true);
+      setMensajeValidacion(mensajeFinal);
 
       // Guardar en el estado padre
       onGuardar({
@@ -195,7 +207,7 @@ ORDER BY c.ORDINAL_POSITION;`;
   };
 
   /**
-   * NUEVA FUNCIÓN: Limpia todos los campos
+   * Limpia todos los campos
    */
   const handleLimpiar = () => {
     if (window.confirm('¿Estás seguro de limpiar todos los datos? Esta acción no se puede deshacer.')) {
@@ -379,6 +391,16 @@ Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
       {/* Paso 3: Resultados de Datos */}
       <div className={styles.seccion}>
         <h3>Paso 2B: Resultados de Datos (Opcional)</h3>
+        
+        <div className={styles.advertenciaImportante}>
+          <strong>⚠️ IMPORTANTE:</strong> Para mejores resultados, copia <strong>CON ENCABEZADOS</strong>:
+          <ul>
+            <li>En <strong>SSMS</strong>: Click derecho → <strong>Copy with Headers</strong></li>
+            <li>En <strong>Oracle SQL Developer</strong>: Selecciona TODO incluyendo los nombres de columnas</li>
+          </ul>
+          Si pegas solo datos sin encabezados, se generarán nombres automáticos (COL_1, COL_2, etc.)
+        </div>
+
         <p className={styles.instruccion}>
           🔍 <strong>Instrucciones:</strong> Ejecuta un SELECT de ejemplo y pega los resultados 
           (incluyendo encabezados). Esto ayuda a inferir mejor los tipos de datos.
@@ -412,10 +434,15 @@ Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
         )}
 
         <div className={styles.ejemploFormato}>
-          <strong>Ejemplo de formato esperado (separado por TABS):</strong>
+          <strong>Ejemplo CORRECTO (con encabezados):</strong>
           <pre>
 {`COD_PERIODO_ACADEMICO COD_TIPO_DOCUMENTO NUM_DOC_PERSONA CODIGO_ESTUDIANTE
 202110                CC                 1046908774      105580587
+202110                CC                 1234567890      105580588`}
+          </pre>
+          <strong style={{ color: '#e74c3c' }}>Ejemplo INCORRECTO (sin encabezados - se detectarán automáticamente):</strong>
+          <pre style={{ color: '#7f8c8d' }}>
+{`202110                CC                 1046908774      105580587
 202110                CC                 1234567890      105580588`}
           </pre>
         </div>
@@ -423,7 +450,8 @@ Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
         <textarea
           className={styles.textarea}
           placeholder="Pega aquí algunos resultados de ejemplo (SELECT TOP 10 * FROM tabla)...
-Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
+Los datos pueden estar separados por TABS (recomendado) o espacios múltiples.
+IMPORTANTE: Incluye los encabezados de columna para mejores resultados."
           value={textoResultados}
           onChange={(e) => setTextoResultados(e.target.value)}
           rows={10}
@@ -453,6 +481,8 @@ Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
           <div className={
             mensajeValidacion.startsWith('✅') 
               ? styles.mensajeExito 
+              : mensajeValidacion.startsWith('⚠️')
+              ? styles.mensajeAdvertencia
               : styles.mensajeError
           }>
             {mensajeValidacion}
@@ -460,7 +490,7 @@ Los datos pueden estar separados por TABS (recomendado) o espacios múltiples."
         )}
       </div>
 
-      {/* Paso 3: Tabla de Campos Detectados */}
+      {/* Paso 4: Tabla de Campos Detectados */}
       {mostrarTabla && campos.length > 0 && (
         <div className={styles.seccion}>
           <h3>Paso 3: Revisa y Ajusta los Campos Detectados</h3>

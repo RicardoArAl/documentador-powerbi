@@ -42,7 +42,7 @@
   border-color: #3498db;
 }
 
-/* NUEVO: Helper text */
+/* Helper text */
 .helper {
   margin-top: 8px;
   color: #7f8c8d;
@@ -60,7 +60,35 @@
   line-height: 1.6;
 }
 
-/* NUEVO: Botones de queries */
+/* NUEVO: Advertencia importante */
+.advertenciaImportante {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-left: 5px solid #ff9800;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  color: #856404;
+  line-height: 1.6;
+}
+
+.advertenciaImportante strong {
+  color: #d63031;
+  display: block;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.advertenciaImportante ul {
+  margin: 10px 0 0 20px;
+  padding: 0;
+}
+
+.advertenciaImportante li {
+  margin-bottom: 5px;
+}
+
+/* Botones de queries */
 .botonesQuery {
   display: flex;
   gap: 10px;
@@ -104,7 +132,7 @@
   word-wrap: break-word;
 }
 
-/* NUEVO: Header del query box */
+/* Header del query box */
 .queryHeader {
   display: flex;
   justify-content: space-between;
@@ -119,7 +147,7 @@
   font-size: 14px;
 }
 
-/* NUEVO: Botón copiar query */
+/* Botón copiar query */
 .btnCopiarQuery {
   background: #27ae60;
   color: white;
@@ -159,7 +187,7 @@
   line-height: 1.5;
   color: #212529;
   border: 1px solid #e0e0e0;
-  margin: 0;
+  margin: 0 0 10px 0;
 }
 
 /* Textarea grande */
@@ -219,7 +247,7 @@
   opacity: 0.6;
 }
 
-/* NUEVO: Botón limpiar */
+/* Botón limpiar */
 .btnLimpiar {
   background: #e74c3c;
   color: white;
@@ -256,6 +284,18 @@
   padding: 12px 15px;
   border-radius: 6px;
   border: 1px solid #f5c6cb;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+}
+
+/* NUEVO: Mensaje de advertencia */
+.mensajeAdvertencia {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 15px;
+  border-radius: 6px;
+  border: 1px solid #ffc107;
   font-weight: 500;
   width: 100%;
   text-align: center;
@@ -301,7 +341,7 @@
   vertical-align: middle;
 }
 
-/* NUEVO: Celda de número */
+/* Celda de número */
 .celdaNumero {
   text-align: center;
   color: #7f8c8d;

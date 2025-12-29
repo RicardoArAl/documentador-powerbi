@@ -1,18 +1,16 @@
 /**
  * =====================================================
- * SQL PARSER MEJORADO v2.1
+ * SQL PARSER MEJORADO v2.2
  * =====================================================
  * Mejoras:
- * - Soporte optimizado para TABS (Oracle SQL Developer/SSMS)
- * - Detección automática de VARCHAR2 (Oracle)
- * - Mejor manejo de espacios y saltos de línea
- * - Soporte para NUMBER (Oracle)
+ * - Detecta automáticamente si la primera línea son encabezados o datos
+ * - Genera nombres automáticos de columnas si no hay encabezados
+ * - Mejor manejo de resultados sin encabezados de SSMS
  * =====================================================
  */
 
 /**
- * FUNCIÓN MEJORADA: Parsea la estructura de columnas desde INFORMATION_SCHEMA
- * Ahora soporta mejor el formato con TABS de Oracle
+ * Parsea la estructura de columnas desde INFORMATION_SCHEMA
  * @param {string} textoEstructura - Resultado del query INFORMATION_SCHEMA.COLUMNS
  * @returns {array} - Array de campos con información detallada
  */
@@ -97,14 +95,13 @@ export function parsearEstructuraColumnas(textoEstructura) {
 }
 
 /**
- * Función principal que parsea el texto completo pegado por el usuario
- * Mejorada para manejar TABS de Oracle
+ * FUNCIÓN PRINCIPAL MEJORADA: Parsea resultados con detección automática de encabezados
  * @param {string} textoResultados - Texto copiado desde SSMS/SQL Developer
- * @returns {object} - Objeto con tabla origen y campos detectados
+ * @returns {object} - Objeto con campos detectados y advertencias
  */
 export function parsearResultadosSQL(textoResultados) {
   if (!textoResultados || textoResultados.trim() === '') {
-    return { tablaOrigen: '', campos: [] };
+    return { tablaOrigen: '', campos: [], advertencia: null };
   }
 
   try {
@@ -115,21 +112,57 @@ export function parsearResultadosSQL(textoResultados) {
       .filter(linea => linea.length > 0)
       .filter(linea => !linea.match(/^[-=]+$/)); // Eliminar separadores
 
-    if (lineas.length < 2) {
-      return { tablaOrigen: '', campos: [] };
+    if (lineas.length < 1) {
+      return { tablaOrigen: '', campos: [], advertencia: 'No hay datos suficientes' };
     }
 
-    // 2. Extraer columnas de la primera línea (encabezados)
-    const columnas = extraerColumnas(lineas[0]);
+    // 2. Extraer primera línea
+    const primeraLinea = extraerColumnas(lineas[0]);
+    
+    // 3. DETECTAR SI LA PRIMERA LÍNEA SON ENCABEZADOS O DATOS
+    const tieneEncabezados = detectarSiSonEncabezados(primeraLinea);
+    
+    let columnas;
+    let filasDetectadas;
+    let advertencia = null;
 
-    console.log('Columnas de resultados:', columnas);
+    if (tieneEncabezados) {
+      // CASO A: Primera línea son encabezados
+      console.log('✅ Se detectaron encabezados en la primera línea');
+      columnas = primeraLinea;
+      filasDetectadas = lineas.length > 1 ? extraerFilas(lineas.slice(1), columnas.length) : [];
+    } else {
+      // CASO B: Primera línea son DATOS, no hay encabezados
+      console.log('⚠️ No se detectaron encabezados. Generando nombres automáticos...');
+      const numColumnas = primeraLinea.length;
+      columnas = generarNombresColumnas(numColumnas);
+      filasDetectadas = extraerFilas(lineas, columnas.length);
+      advertencia = `⚠️ No se detectaron encabezados de columna. Se generaron nombres automáticos (COL_1, COL_2, etc.). Se recomienda incluir los encabezados en el resultado copiado.`;
+    }
 
-    // 3. Extraer filas de datos (desde línea 2 en adelante)
-    const filasDetectadas = extraerFilas(lineas.slice(1), columnas.length);
+    console.log('Columnas finales:', columnas);
+    console.log('Filas de datos:', filasDetectadas.length);
 
-    console.log('Filas de resultados:', filasDetectadas.length);
+    // 4. Si no hay filas de datos, no podemos inferir tipos
+    if (filasDetectadas.length === 0) {
+      return {
+        tablaOrigen: '',
+        campos: columnas.map((nombreColumna, index) => ({
+          nombre: nombreColumna,
+          tipo: 'VARCHAR',
+          longitud: '',
+          aceptaNulos: false,
+          esLlave: detectarSiEsLlave(nombreColumna),
+          descripcion: generarDescripcion(nombreColumna),
+          usadoEnVisuales: [],
+          participaEnFiltros: false,
+          esMetrica: false
+        })),
+        advertencia: advertencia || 'No hay filas de datos para inferir tipos'
+      };
+    }
 
-    // 4. Inferir tipos de datos analizando los valores
+    // 5. Inferir tipos de datos analizando los valores
     const campos = columnas.map((nombreColumna, index) => {
       // Obtener todos los valores de esta columna
       const valoresColumna = filasDetectadas.map(fila => fila[index]);
@@ -150,17 +183,93 @@ export function parsearResultadosSQL(textoResultados) {
     return {
       tablaOrigen: '',
       campos: campos,
-      datosEjemplo: filasDetectadas.slice(0, 5)
+      datosEjemplo: filasDetectadas.slice(0, 5),
+      advertencia: advertencia
     };
 
   } catch (error) {
     console.error('Error parseando resultados:', error);
-    return { tablaOrigen: '', campos: [] };
+    return { tablaOrigen: '', campos: [], advertencia: 'Error al parsear los datos' };
   }
 }
 
 /**
- * NUEVA FUNCIÓN: Combina datos de estructura + resultados para máxima precisión
+ * NUEVA FUNCIÓN: Detecta si una línea contiene encabezados o datos
+ * Heurística: Los encabezados generalmente tienen:
+ * - Letras con guiones bajos (COLUMN_NAME, DATA_TYPE)
+ * - No son 100% numéricos
+ * - Longitudes razonables (< 50 caracteres)
+ * - Patrones comunes de nombres de campos
+ */
+function detectarSiSonEncabezados(valores) {
+  if (!valores || valores.length === 0) return false;
+
+  let puntajeEncabezado = 0;
+  let totalValores = valores.length;
+
+  for (const valor of valores) {
+    const valorLimpio = valor.trim();
+    
+    // Si está vacío o es NULL, no aporta
+    if (!valorLimpio || valorLimpio === 'NULL') continue;
+
+    // 1. ¿Contiene guiones bajos? (común en nombres de columnas)
+    if (/_/.test(valorLimpio)) {
+      puntajeEncabezado += 2;
+    }
+
+    // 2. ¿Es puramente numérico? (probablemente dato, no encabezado)
+    if (/^\d+$/.test(valorLimpio)) {
+      puntajeEncabezado -= 2;
+    }
+
+    // 3. ¿Es una fecha? (probablemente dato)
+    if (/^\d{4}-\d{2}-\d{2}/.test(valorLimpio) || /^\d{2}\/\d{2}\/\d{4}/.test(valorLimpio)) {
+      puntajeEncabezado -= 2;
+    }
+
+    // 4. ¿Contiene palabras comunes de encabezados?
+    const palabrasEncabezado = ['CODIGO', 'CODE', 'NOMBRE', 'NAME', 'FECHA', 'DATE', 'TIPO', 'TYPE', 'ID', 'NUM', 'COD'];
+    if (palabrasEncabezado.some(palabra => valorLimpio.toUpperCase().includes(palabra))) {
+      puntajeEncabezado += 1;
+    }
+
+    // 5. ¿Longitud excesiva? (>50 chars probablemente es dato)
+    if (valorLimpio.length > 50) {
+      puntajeEncabezado -= 1;
+    }
+
+    // 6. ¿Todo mayúsculas con guiones? (patrón común en SQL)
+    if (/^[A-Z_]+$/.test(valorLimpio) && valorLimpio.length > 2) {
+      puntajeEncabezado += 1;
+    }
+
+    // 7. ¿Es un email? (probablemente dato)
+    if (/@/.test(valorLimpio) && /\./.test(valorLimpio)) {
+      puntajeEncabezado -= 2;
+    }
+  }
+
+  // Si el puntaje es positivo, probablemente son encabezados
+  console.log(`Puntaje detección encabezados: ${puntajeEncabezado} (${totalValores} valores)`);
+  return puntajeEncabezado > 0;
+}
+
+/**
+ * NUEVA FUNCIÓN: Genera nombres automáticos de columnas
+ * @param {number} cantidad - Número de columnas a generar
+ * @returns {array} - Array de nombres generados
+ */
+function generarNombresColumnas(cantidad) {
+  const nombres = [];
+  for (let i = 1; i <= cantidad; i++) {
+    nombres.push(`COL_${i}`);
+  }
+  return nombres;
+}
+
+/**
+ * Combina datos de estructura + resultados para máxima precisión
  * @param {array} camposEstructura - Campos parseados desde INFORMATION_SCHEMA
  * @param {array} camposResultados - Campos parseados desde SELECT
  * @returns {array} - Campos combinados con la mejor información de ambas fuentes
@@ -203,7 +312,7 @@ export function combinarDatosColumnas(camposEstructura, camposResultados) {
 }
 
 /**
- * FUNCIÓN MEJORADA: Mapea tipos de SQL Server y Oracle a tipos simplificados
+ * Mapea tipos de SQL Server y Oracle a tipos simplificados
  */
 function mapearTipoSQL(tipoOriginal) {
   const tipo = tipoOriginal.toUpperCase();
@@ -235,11 +344,9 @@ function mapearTipoSQL(tipoOriginal) {
     'BIT': 'BIT',
     'BOOLEAN': 'BIT',
     
-    // Oracle (NUEVOS)
+    // Oracle
     'VARCHAR2': 'VARCHAR2',
     'NVARCHAR2': 'NVARCHAR',
-    'CHAR': 'VARCHAR',
-    'NCHAR': 'NVARCHAR',
     'CLOB': 'TEXT',
     'NCLOB': 'TEXT',
     'NUMBER': 'NUMBER',
@@ -259,7 +366,7 @@ function mapearTipoSQL(tipoOriginal) {
 }
 
 /**
- * FUNCIÓN MEJORADA: Extrae los nombres de columnas de la línea de encabezados
+ * Extrae los nombres de columnas de la línea de encabezados
  * Prioriza TABS, luego pipes, luego espacios múltiples
  */
 function extraerColumnas(lineaEncabezado) {
@@ -287,7 +394,7 @@ function extraerColumnas(lineaEncabezado) {
 }
 
 /**
- * FUNCIÓN MEJORADA: Extrae las filas de datos
+ * Extrae las filas de datos
  * Mejor manejo de TABS y espacios
  */
 function extraerFilas(lineasDatos, numColumnas) {
@@ -327,7 +434,7 @@ function extraerFilas(lineasDatos, numColumnas) {
 }
 
 /**
- * FUNCIÓN MEJORADA: Infiere el tipo de dato basándose en los valores de ejemplo
+ * Infiere el tipo de dato basándose en los valores de ejemplo
  */
 function inferirTipoDato(valores) {
   const valoresValidos = valores.filter(v => v && v !== 'NULL' && v.trim() !== '');
@@ -390,8 +497,7 @@ function inferirTipoDato(valores) {
 }
 
 /**
- * FUNCIÓN MEJORADA: Detecta si un campo es potencialmente una llave primaria
- * Ahora incluye más patrones comunes de Oracle
+ * Detecta si un campo es potencialmente una llave primaria
  */
 function detectarSiEsLlave(nombreCampo) {
   const nombreUpper = nombreCampo.toUpperCase();
@@ -406,8 +512,8 @@ function detectarSiEsLlave(nombreCampo) {
     /^CODIGO$/,
     /^CODE$/,
     /^KEY$/,
-    /^COD_/,  // Común en Oracle (COD_PERIODO, COD_PROGRAMA)
-    /_NUM$/,  // Común para números identificadores
+    /^COD_/,
+    /_NUM$/,
   ];
 
   return patronesLlave.some(patron => patron.test(nombreUpper));
@@ -417,6 +523,11 @@ function detectarSiEsLlave(nombreCampo) {
  * Genera una descripción legible desde el nombre del campo
  */
 function generarDescripcion(nombreCampo) {
+  // Si es un nombre generado automáticamente, dar descripción genérica
+  if (/^COL_\d+$/.test(nombreCampo)) {
+    return `Columna ${nombreCampo.split('_')[1]}`;
+  }
+
   const palabras = nombreCampo
     .split('_')
     .map(palabra => {
@@ -458,10 +569,10 @@ export function validarFormatoResultados(texto) {
 
   const lineas = texto.split('\n').filter(l => l.trim().length > 0);
   
-  if (lineas.length < 2) {
+  if (lineas.length < 1) {
     return { 
       valido: false, 
-      mensaje: 'Se necesitan al menos 2 líneas (encabezados y una fila de datos)' 
+      mensaje: 'Se necesita al menos 1 línea de datos' 
     };
   }
 
