@@ -33,11 +33,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   const categorias = [
     'Gestión Académica',
     'Gestión Financiera',
-    'Gestión Administrativa',
-    'Recursos Humanos',
-    'Ventas y Marketing',
-    'Operaciones',
-    'Otra'
+    'Gestión Administrativa'
   ];
 
   // ===== FUNCIONES EXISTENTES =====

@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
+import { analizarCodigoSQL, validarRespuestaSQL } from '../../utils/ai/analizarTexto';
+import { tieneApiKey } from '../../utils/ai/geminiClient';
 import styles from './ConsultasAdicionales.module.css';
 
 /**
- * SECCIÓN 5: CONSULTAS ADICIONALES
+ * SECCIÓN 5: CONSULTAS ADICIONALES (CON IA - FASE 3)
+ * 
  * Componente para documentar stored procedures, funciones, views y queries adicionales
- * - Usuario documenta queries extras que usa el reporte
- * - Incluye: nombre, tipo, código SQL, parámetros, descripción
- * - Sección OPCIONAL para exportación
+ * - Permite análisis automático con IA del código SQL
+ * - Extrae: nombre, tipo, parámetros, tablas, descripción
+ * - Usuario puede revisar y ajustar los resultados
  */
 
 const ConsultasAdicionales = ({ reportData, setReportData }) => {
   
   // Estado local para controlar qué consultas están expandidas
   const [expandidas, setExpandidas] = useState({});
+  
+  // Estado para análisis IA
+  const [analizando, setAnalizando] = useState(false);
+  const [resultadoIA, setResultadoIA] = useState(null);
+  const [consultaActual, setConsultaActual] = useState(null);
+  const [mensajeIA, setMensajeIA] = useState('');
 
   // Tipos de consultas predefinidos
   const TIPOS_CONSULTA = [
@@ -133,6 +142,101 @@ const ConsultasAdicionales = ({ reportData, setReportData }) => {
       });
   };
 
+  // =====================================================
+  // FUNCIONES DE IA (FASE 3)
+  // =====================================================
+
+  /**
+   * Iniciar análisis IA del código SQL
+   */
+  const handleAnalizarConIA = async (consulta) => {
+    // Validar API key
+    if (!tieneApiKey()) {
+      alert('⚠️ Por favor configura tu API key de Gemini primero.\n\nHaz clic en el botón "⚙️ Configurar IA" en el header.');
+      return;
+    }
+
+    // Validar que haya código SQL
+    if (!consulta.codigoSQL || consulta.codigoSQL.trim() === '') {
+      setMensajeIA('⚠️ Por favor ingresa el código SQL antes de analizar');
+      return;
+    }
+
+    try {
+      setAnalizando(true);
+      setConsultaActual(consulta);
+      setResultadoIA(null);
+      setMensajeIA('🤖 Analizando código SQL con IA...');
+
+      // Llamar a la función de análisis
+      const resultado = await analizarCodigoSQL(
+        consulta.codigoSQL,
+        consulta.tipo || 'Query'
+      );
+
+      // Validar resultado
+      const validacion = validarRespuestaSQL(resultado, 0.7);
+      
+      if (!validacion.valida) {
+        setMensajeIA(`⚠️ ${validacion.mensaje}`);
+      } else {
+        setMensajeIA('✅ Análisis completado con éxito');
+      }
+
+      setResultadoIA(resultado);
+
+    } catch (error) {
+      console.error('Error al analizar código:', error);
+      setMensajeIA(`❌ Error: ${error.message}`);
+    } finally {
+      setAnalizando(false);
+    }
+  };
+
+  /**
+   * Aplicar resultados de IA al formulario
+   */
+  const handleAplicarResultadosIA = () => {
+    if (!resultadoIA || !consultaActual) return;
+
+    // Actualizar la consulta con los datos analizados
+    setReportData(prev => ({
+      ...prev,
+      consultasAdicionales: prev.consultasAdicionales.map(c => {
+        if (c.id === consultaActual.id) {
+          return {
+            ...c,
+            nombre: resultadoIA.nombre || c.nombre,
+            tipo: resultadoIA.tipo || c.tipo,
+            parametros: resultadoIA.parametros || c.parametros,
+            tablasSalida: Array.isArray(resultadoIA.tablasSalida) 
+              ? resultadoIA.tablasSalida.join(', ')
+              : resultadoIA.tablasSalida || c.tablasSalida,
+            descripcion: resultadoIA.descripcion || c.descripcion
+          };
+        }
+        return c;
+      })
+    }));
+
+    // Limpiar estado de IA
+    setResultadoIA(null);
+    setConsultaActual(null);
+    setMensajeIA('✅ Resultados aplicados correctamente');
+    
+    // Limpiar mensaje después de 3 segundos
+    setTimeout(() => setMensajeIA(''), 3000);
+  };
+
+  /**
+   * Cancelar análisis IA
+   */
+  const handleCancelarIA = () => {
+    setResultadoIA(null);
+    setConsultaActual(null);
+    setMensajeIA('');
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -202,6 +306,119 @@ const ConsultasAdicionales = ({ reportData, setReportData }) => {
               {expandidas[consulta.id] && (
                 <div className={styles.cardBody}>
                   
+                  {/* ========== SECCIÓN IA ========== */}
+                  {tieneApiKey() && consulta.codigoSQL && (
+                    <div className={styles.seccionIA}>
+                      <div className={styles.seccionIATitulo}>
+                        <span>🤖</span>
+                        <h4>Asistencia con IA</h4>
+                      </div>
+                      <p className={styles.seccionIADescripcion}>
+                        La IA puede analizar automáticamente tu código SQL y completar:
+                        nombre, tipo, parámetros, tablas y descripción.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAnalizarConIA(consulta)}
+                        disabled={analizando || !consulta.codigoSQL}
+                        className={styles.btnAnalizarIA}
+                      >
+                        {analizando ? (
+                          <>
+                            <div className={styles.spinner}></div>
+                            <span>Analizando código SQL...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🔍</span>
+                            <span>Analizar Código SQL con IA</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Mensaje de estado */}
+                      {mensajeIA && consultaActual?.id === consulta.id && (
+                        <div className={`${styles.mensajeAnalisis} ${mensajeIA.startsWith('❌') ? styles.error : ''}`}>
+                          <span>{mensajeIA}</span>
+                        </div>
+                      )}
+
+                      {/* Resultados de IA */}
+                      {resultadoIA && consultaActual?.id === consulta.id && (
+                        <div className={styles.resultadosIA}>
+                          <div className={styles.resultadosIATitulo}>
+                            ✨ Resultados del Análisis
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Nombre:</span>
+                            <span className={styles.resultadoValor}>{resultadoIA.nombre || 'No detectado'}</span>
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Tipo:</span>
+                            <span className={styles.resultadoValor}>{resultadoIA.tipo || 'No detectado'}</span>
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Parámetros:</span>
+                            <span className={styles.resultadoValor}>{resultadoIA.parametros || 'Sin parámetros'}</span>
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Tablas Entrada:</span>
+                            <span className={styles.resultadoValor}>
+                              {Array.isArray(resultadoIA.tablasEntrada) 
+                                ? resultadoIA.tablasEntrada.join(', ') || 'No detectadas'
+                                : resultadoIA.tablasEntrada || 'No detectadas'}
+                            </span>
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Campos Salida:</span>
+                            <span className={styles.resultadoValor}>
+                              {Array.isArray(resultadoIA.tablasSalida) 
+                                ? resultadoIA.tablasSalida.join(', ') || 'No detectados'
+                                : resultadoIA.tablasSalida || 'No detectados'}
+                            </span>
+                          </div>
+
+                          <div className={styles.resultadoItem}>
+                            <span className={styles.resultadoLabel}>Descripción:</span>
+                            <span className={styles.resultadoValor}>{resultadoIA.descripcion || 'No generada'}</span>
+                          </div>
+
+                          {resultadoIA.confianza && (
+                            <div className={styles.resultadoItem}>
+                              <span className={styles.resultadoLabel}>Confianza:</span>
+                              <span className={styles.badgeConfianza}>
+                                {(resultadoIA.confianza * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={handleAplicarResultadosIA}
+                            className={styles.btnAplicarResultados}
+                          >
+                            ✅ Aplicar Resultados al Formulario
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleCancelarIA}
+                            className={styles.btnCopiar}
+                            style={{ marginTop: '0.5rem', width: '100%' }}
+                          >
+                            ❌ Cancelar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Nombre de la consulta */}
                   <div className={styles.formGroup}>
                     <label htmlFor={`nombre-${consulta.id}`}>

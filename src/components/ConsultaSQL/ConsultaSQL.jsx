@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { parsearResultadosSQL, parsearEstructuraColumnas, combinarDatosColumnas, validarFormatoResultados } from '../../utils/sqlParser';
+import { mejorarDescripcionesCampos } from '../../utils/ai/analizarTexto';
+import { tieneApiKey } from '../../utils/ai/geminiClient';
 import styles from './ConsultaSQL.module.css';
+
+/**
+ * SECCIÓN 2: CONSULTA SQL (CON IA - FASE 3)
+ * 
+ * Permite analizar la estructura SQL del reporte
+ * MEJORA FASE 3: Botón para mejorar descripciones con IA
+ */
 
 const ConsultaSQL = ({ datos, onGuardar }) => {
   // Estado local para los textareas
@@ -10,6 +19,9 @@ const ConsultaSQL = ({ datos, onGuardar }) => {
   const [campos, setCampos] = useState(datos.camposDetectados || []);
   const [mensajeValidacion, setMensajeValidacion] = useState('');
   const [mostrarTabla, setMostrarTabla] = useState(false);
+  
+  // Estado para IA
+  const [mejorandoDescripciones, setMejorandoDescripciones] = useState(false);
   
   // Estado para mostrar/ocultar queries de ayuda
   const [mostrarQueryBasico, setMostrarQueryBasico] = useState(false);
@@ -203,6 +215,52 @@ ORDER BY c.ORDINAL_POSITION;`;
     } catch (error) {
       console.error('Error analizando datos:', error);
       setMensajeValidacion('❌ Error al procesar los datos. Verifica el formato.');
+    }
+  };
+
+  /**
+   * NUEVA FUNCIÓN: Mejorar descripciones con IA
+   */
+  const handleMejorarDescripciones = async () => {
+    // Validar API key
+    if (!tieneApiKey()) {
+      alert('⚠️ Por favor configura tu API key de Gemini primero.\n\nHaz clic en el botón "⚙️ Configurar IA" en el header.');
+      return;
+    }
+
+    // Validar que haya campos
+    if (campos.length === 0) {
+      setMensajeValidacion('❌ Primero debes analizar los campos antes de mejorar descripciones');
+      return;
+    }
+
+    try {
+      setMejorandoDescripciones(true);
+      setMensajeValidacion('🤖 Mejorando descripciones con IA...');
+
+      // Generar contexto para la IA
+      const contexto = `Tabla: ${tablaOrigen || 'Tabla de Power BI'}. Reporte de análisis de datos.`;
+
+      // Llamar a la función de IA
+      const camposMejorados = await mejorarDescripcionesCampos(campos, contexto);
+
+      // Actualizar campos
+      setCampos(camposMejorados);
+      setMensajeValidacion(`✅ Se mejoraron ${camposMejorados.length} descripciones con IA`);
+
+      // Guardar cambios
+      onGuardar({
+        consultaSQL: textoResultados,
+        estructuraColumnas: textoEstructura,
+        tablaOrigen: tablaOrigen,
+        camposDetectados: camposMejorados
+      });
+
+    } catch (error) {
+      console.error('Error mejorando descripciones:', error);
+      setMensajeValidacion(`❌ Error: ${error.message}`);
+    } finally {
+      setMejorandoDescripciones(false);
     }
   };
 
@@ -493,9 +551,40 @@ IMPORTANTE: Incluye los encabezados de columna para mejores resultados."
       {/* Paso 4: Tabla de Campos Detectados */}
       {mostrarTabla && campos.length > 0 && (
         <div className={styles.seccion}>
-          <h3>Paso 3: Revisa y Ajusta los Campos Detectados</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3>Paso 3: Revisa y Ajusta los Campos Detectados</h3>
+            
+            {/* NUEVO BOTÓN: Mejorar con IA */}
+            {tieneApiKey() && (
+              <button
+                type="button"
+                onClick={handleMejorarDescripciones}
+                disabled={mejorandoDescripciones}
+                className={styles.btnMejorarIA}
+                title="Mejorar descripciones con IA"
+              >
+                {mejorandoDescripciones ? (
+                  <>
+                    <span className={styles.spinnerSmall}></span>
+                    <span>Mejorando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✨</span>
+                    <span>Mejorar Descripciones con IA</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          
           <p className={styles.instruccion}>
             ✏️ Puedes editar las descripciones, cambiar tipos de datos o marcar llaves primarias.
+            {tieneApiKey() && (
+              <span style={{ color: '#9c27b0', fontWeight: 'bold' }}>
+                {' '}O usa el botón "✨ Mejorar Descripciones con IA" para que la IA mejore las descripciones automáticamente.
+              </span>
+            )}
           </p>
 
           <div className={styles.tablaContainer}>
