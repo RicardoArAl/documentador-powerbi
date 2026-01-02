@@ -1,6 +1,7 @@
 /* =====================================================
-   SECCIÓN 1: INFORMACIÓN BÁSICA - ESTILOS MODERNOS
-   Versión: 3.0 - Rediseño Completo
+   SECCIÓN 1: INFORMACIÓN BÁSICA - ESTILOS COMPLETOS v3.0
+   PARTE 1/2: Base, Header, Formulario, Jerarquía
+   Versión: 3.0 - Con Jerarquía Integrada + Extracción de Archivo
    ===================================================== */
 
 .container {
@@ -123,7 +124,6 @@
   margin-bottom: 2rem;
 }
 
-/* Grid de campos */
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -131,7 +131,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* Grupos de formulario */
 .formGroup {
   display: flex;
   flex-direction: column;
@@ -158,7 +157,6 @@
   font-weight: 900;
 }
 
-/* Inputs y selects */
 .input,
 .select,
 .textarea {
@@ -209,7 +207,6 @@
   line-height: 1.6;
 }
 
-/* Hints */
 .hint {
   font-size: 0.85rem;
   color: #6b7280;
@@ -223,6 +220,288 @@
   content: "💡";
   font-style: normal;
   flex-shrink: 0;
+}
+
+/* ============ JERARQUÍA ORGANIZACIONAL ============ */
+.seccionJerarquia {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #86efac;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  animation: slideIn 0.6s ease;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
+}
+
+.jerarquiaHeader {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.jerarquiaTitulo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 0.5rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.jerarquiaDescripcion {
+  color: #166534;
+  font-size: 0.95rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ============ BREADCRUMB ============ */
+.breadcrumb {
+  background: white;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.breadcrumbIcono {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.breadcrumbTexto {
+  flex: 1;
+  font-weight: 600;
+  color: #166534;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.breadcrumbConfianza {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.breadcrumbConfianza::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: slideShine 3s infinite;
+}
+
+@keyframes slideShine {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+/* ============ BOTONES JERARQUÍA ============ */
+.jerarquiaDeteccion {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btnLimpiarJerarquia {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+
+.btnLimpiarJerarquia:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
+}
+
+/* ============ GRID JERARQUÍA ============ */
+.jerarquiaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.inputReadonly {
+  padding: 0.9rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-weight: 600;
+}
+
+/* ============ REPORTES RELACIONADOS ============ */
+.reportesRelacionados {
+  background: white;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  animation: fadeInUp 0.5s ease;
+}
+
+.relacionadosTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #166534;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.relacionadosLista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.relacionadoItem {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.relacionadoItem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
+  transition: width 0.3s ease;
+  border-radius: 8px 0 0 8px;
+}
+
+.relacionadoItem:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+}
+
+.relacionadoItem:hover::before {
+  width: 100%;
+}
+
+.relacionadoCodigo {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+}
+
+.relacionadoNombre {
+  flex: 1;
+  color: #166534;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ============ RAZONAMIENTO IA ============ */
+.razonamientoIA {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #60a5fa;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: #1e40af;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.razonamientoIA strong {
+  color: #1e3a8a;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ============ BARRA DE PROGRESO ============ */
@@ -318,6 +597,10 @@
   font-size: 1.3rem;
   flex-shrink: 0;
 }
+/* =====================================================
+   SECCIÓN 1: INFORMACIÓN BÁSICA - ESTILOS COMPLETOS v3.0
+   PARTE 2/2: Modal IA, Drop Zone, Resultados, Responsive
+   ===================================================== */
 
 /* ============ MODAL DE IA ============ */
 .modalOverlay {
@@ -402,7 +685,7 @@
   padding: 2rem;
 }
 
-/* Pasos del modal */
+/* ============ PASOS DEL MODAL ============ */
 .pasoModal {
   margin-bottom: 2rem;
   padding-bottom: 2rem;
@@ -438,7 +721,7 @@
   flex-shrink: 0;
 }
 
-/* Drop Zone */
+/* ============ DROP ZONE ============ */
 .dropZone {
   border: 3px dashed #cbd5e1;
   border-radius: 12px;
@@ -490,7 +773,17 @@
   margin: 0;
 }
 
-/* Imagen seleccionada */
+.dropZoneHint {
+  font-size: 0.85rem;
+  color: #059669;
+  margin: 0.5rem 0 0 0;
+  padding: 0.5rem 1rem;
+  background: rgba(5, 150, 105, 0.1);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* ============ IMAGEN SELECCIONADA ============ */
 .imagenSeleccionada {
   display: flex;
   flex-direction: column;
@@ -509,9 +802,80 @@
   font-size: 0.9rem;
   color: #6b7280;
   font-weight: 600;
+  margin: 0;
 }
 
-/* Botón analizar */
+/* ⭐ NUEVO: Información extraída del nombre del archivo */
+.infoExtraida {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border: 2px solid #86efac;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+  animation: scaleIn 0.4s ease;
+}
+
+.infoExtraidaIcono {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.infoExtraidaTexto {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #166534;
+  line-height: 1.6;
+}
+
+.infoExtraidaTexto strong {
+  font-weight: 700;
+  color: #14532d;
+}
+
+.infoExtraidaTexto div {
+  margin-top: 0.3rem;
+}
+
+/* ============ PROGRESO ANÁLISIS ============ */
+.progresoAnalisis {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #60a5fa;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: #1e40af;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.progresoAnalisis::before {
+  content: '⏳';
+  font-size: 1.2rem;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============ BOTONES ============ */
 .btnAnalizar {
   background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: white;
@@ -541,7 +905,6 @@
   cursor: not-allowed;
 }
 
-/* Spinner */
 .spinner {
   width: 16px;
   height: 16px;
@@ -555,12 +918,36 @@
   to { transform: rotate(360deg); }
 }
 
-/* Resultados */
+/* ============ RESULTADOS ============ */
 .resultadosIA {
   background: #f9fafb;
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+.seccionResultado {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.seccionResultado:last-child {
+  margin-bottom: 0;
+}
+
+.subtituloResultado {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 0.8rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .resultadoItem {
@@ -590,7 +977,7 @@
   color: #2196f3;
 }
 
-/* Acciones del modal */
+/* ============ ACCIONES DEL MODAL ============ */
 .modalAcciones {
   display: flex;
   gap: 1rem;
@@ -636,7 +1023,7 @@
   background: #4b5563;
 }
 
-/* Error */
+/* ============ ERROR ============ */
 .errorIA {
   background: #fee2e2;
   border: 2px solid #ef4444;
@@ -648,7 +1035,24 @@
   margin-top: 1rem;
 }
 
+/* ============ EFECTOS ESPECIALES ============ */
+
+/* Efecto de brillo en breadcrumb cuando está completo */
+.breadcrumb:has(.breadcrumbConfianza) {
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(34, 197, 94, 0.25), 0 0 20px rgba(34, 197, 94, 0.1);
+  }
+}
+
 /* ============ RESPONSIVE ============ */
+
 @media (max-width: 768px) {
   .container {
     padding: 1.5rem 1rem;
@@ -672,366 +1076,6 @@
     grid-template-columns: 1fr;
   }
 
-  .modalContenido {
-    width: 95%;
-  }
-
-  .modalBody {
-    padding: 1.5rem;
-  }
-
-  .dropZone {
-    min-height: 200px;
-    padding: 1.5rem;
-  }
-
-  .modalAcciones {
-    flex-direction: column;
-  }
-
-  .btnAplicar,
-  .btnReintentar {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .container {
-    padding: 1rem;
-  }
-
-  .formulario {
-    padding: 1.5rem;
-  }
-
-  .titulo {
-    font-size: 1.3rem;
-  }
-
-  .seccionIA {
-    padding: 1.5rem;
-  }
-}
-/* ============ SECCIÓN JERARQUÍA ORGANIZACIONAL ============ */
-.seccionJerarquia {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border: 2px solid #86efac;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  animation: slideIn 0.6s ease;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
-}
-
-.jerarquiaHeader {
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.jerarquiaTitulo {
-  font-size: 1.3rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0 0 0.5rem 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.jerarquiaDescripcion {
-  color: #166534;
-  font-size: 0.95rem;
-  margin: 0;
-  font-weight: 500;
-}
-
-/* ============ BREADCRUMB ============ */
-.breadcrumb {
-  background: white;
-  border: 2px solid #86efac;
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
-  animation: scaleIn 0.4s ease;
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.breadcrumbIcono {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-.breadcrumbTexto {
-  flex: 1;
-  font-weight: 600;
-  color: #166534;
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.breadcrumbConfianza {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-/* ============ DETECCIÓN AUTOMÁTICA ============ */
-.jerarquiaDeteccion {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.btnDetectarJerarquia {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-}
-
-.btnDetectarJerarquia::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  transition: left 0.5s ease;
-}
-
-.btnDetectarJerarquia:hover::before {
-  left: 100%;
-}
-
-.btnDetectarJerarquia:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-}
-
-.btnDetectarJerarquia:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
-}
-
-.btnDetectarJerarquia:disabled:hover {
-  transform: none;
-}
-
-.btnLimpiarJerarquia {
-  background: #f3f4f6;
-  color: #6b7280;
-  border: 2px solid #d1d5db;
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  white-space: nowrap;
-}
-
-.btnLimpiarJerarquia:hover {
-  background: #e5e7eb;
-  border-color: #9ca3af;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
-}
-
-/* ============ ERROR JERARQUÍA ============ */
-.errorJerarquia {
-  background: #fee2e2;
-  border: 2px solid #ef4444;
-  border-left-width: 6px;
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  color: #dc2626;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-/* ============ GRID DE JERARQUÍA ============ */
-.jerarquiaGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.inputReadonly {
-  padding: 0.9rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-family: inherit;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: not-allowed;
-  font-weight: 600;
-}
-
-/* ============ REPORTES RELACIONADOS ============ */
-.reportesRelacionados {
-  background: white;
-  border: 2px solid #86efac;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
-  animation: fadeInUp 0.5s ease;
-}
-
-.relacionadosTitulo {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #166534;
-  margin: 0 0 1rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.relacionadosLista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.relacionadoItem {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border: 1px solid #86efac;
-  border-radius: 8px;
-  padding: 0.8rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.relacionadoItem:hover {
-  transform: translateX(5px);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
-  border-color: #22c55e;
-}
-
-.relacionadoCodigo {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
-  white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
-}
-
-.relacionadoNombre {
-  flex: 1;
-  color: #166534;
-  font-size: 0.9rem;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-/* ============ RAZONAMIENTO IA ============ */
-.razonamientoIA {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border: 2px solid #60a5fa;
-  border-left-width: 6px;
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  color: #1e40af;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  margin-top: 1.5rem;
-  display: flex;
-  gap: 0.8rem;
-  align-items: flex-start;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-  animation: slideInRight 0.5s ease;
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.razonamientoIA strong {
-  color: #1e3a8a;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* ============ RESPONSIVE JERARQUÍA ============ */
-@media (max-width: 768px) {
   .seccionJerarquia {
     padding: 1.5rem;
   }
@@ -1054,7 +1098,6 @@
     flex-direction: column;
   }
 
-  .btnDetectarJerarquia,
   .btnLimpiarJerarquia {
     width: 100%;
     justify-content: center;
@@ -1074,9 +1117,66 @@
     flex-direction: column;
     gap: 0.5rem;
   }
+
+  .modalContenido {
+    width: 95%;
+  }
+
+  .modalBody {
+    padding: 1.5rem;
+  }
+
+  .dropZone {
+    min-height: 200px;
+    padding: 1.5rem;
+  }
+
+  .modalAcciones {
+    flex-direction: column;
+  }
+
+  .btnAplicar,
+  .btnReintentar {
+    width: 100%;
+  }
+
+  .progresoAnalisis {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .seccionResultado {
+    padding: 0.8rem 1rem;
+  }
+
+  .resultadoItem strong {
+    min-width: auto;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .infoExtraida {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .formulario {
+    padding: 1.5rem;
+  }
+
+  .titulo {
+    font-size: 1.3rem;
+  }
+
+  .seccionIA {
+    padding: 1.5rem;
+  }
+
   .seccionJerarquia {
     padding: 1rem;
   }
@@ -1101,103 +1201,21 @@
     font-size: 0.85rem;
     padding: 0.8rem 1rem;
   }
-}
 
-/* ============ ANIMACIONES ADICIONALES ============ */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
+  .progresoAnalisis {
+    font-size: 0.85rem;
+    padding: 0.8rem 1rem;
   }
-  50% {
-    opacity: 0.8;
+
+  .dropZoneIcono {
+    font-size: 3rem;
   }
-}
 
-.btnDetectarJerarquia:disabled .spinner {
-  animation: spin 0.6s linear infinite, pulse 1.5s ease-in-out infinite;
-}
-
-/* Efecto de brillo en breadcrumb cuando está completo */
-.breadcrumb:has(.breadcrumbConfianza) {
-  animation: glow 2s ease-in-out infinite;
-}
-
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  .dropZoneTexto {
+    font-size: 1rem;
   }
-  50% {
-    box-shadow: 0 2px 16px rgba(34, 197, 94, 0.25), 0 0 20px rgba(34, 197, 94, 0.1);
-  }
-}
 
-/* Efecto hover mejorado en items relacionados */
-.relacionadoItem::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
-  transition: width 0.3s ease;
-  border-radius: 8px 0 0 8px;
-}
-
-.relacionadoItem:hover::before {
-  width: 100%;
-}
-
-/* Tooltip para botón deshabilitado */
-.btnDetectarJerarquia:disabled::after {
-  content: attr(title);
-  position: absolute;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1f2937;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.btnDetectarJerarquia:disabled:hover::after {
-  opacity: 1;
-}
-
-/* Badge de confianza con animación */
-.breadcrumbConfianza {
-  position: relative;
-  overflow: hidden;
-}
-
-.breadcrumbConfianza::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
-  animation: slideShine 3s infinite;
-}
-
-@keyframes slideShine {
-  0% {
-    left: -100%;
-  }
-  50%, 100% {
-    left: 100%;
+  .dropZoneHint {
+    font-size: 0.8rem;
   }
 }
