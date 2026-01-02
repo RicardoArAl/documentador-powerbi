@@ -1,25 +1,58 @@
 /**
  * =====================================================
- * COMPONENTE: VISUALIZACIONES
+ * COMPONENTE: VISUALIZACIONES v2.1
  * Sección 4 - Con Análisis de IA Integrado
+ * ⭐ NUEVO: Soporte Ctrl+V para pegar capturas
  * =====================================================
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './Visualizaciones.module.css';
 import { analizarVisualizacionDeImagen, validarRespuestaIA } from '../../utils/ai/analizarImagen';
 
 const Visualizaciones = ({ reportData, setReportData }) => {
   
   // ===== NUEVOS ESTADOS PARA IA =====
-  const [modalIAVisible, setModalIAVisible] = useState(false);
+  const [mostrarModalAsistencia, setMostrarModalAsistencia] = useState(false);
   const [visualSeleccionadoIA, setVisualSeleccionadoIA] = useState(null);
-  const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
+  const [imagenIA, setImagenIA] = useState(null);
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [resultadoIA, setResultadoIA] = useState(null);
   const [errorIA, setErrorIA] = useState(null);
   
   const inputImagenRef = useRef(null);
+
+  // ⭐ NUEVO: EFECTO PARA DETECTAR CTRL+V
+  useEffect(() => {
+    if (!mostrarModalAsistencia) return;
+
+    const manejarPaste = async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault();
+          
+          const blob = items[i].getAsFile();
+          const nombreArchivo = `captura-pegada-${Date.now()}.png`;
+          const archivo = new File([blob], nombreArchivo, { type: blob.type });
+          
+          setImagenIA(archivo);
+          setErrorIA(null);
+          
+          console.log('✅ Imagen pegada desde portapapeles');
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', manejarPaste);
+    
+    return () => {
+      document.removeEventListener('paste', manejarPaste);
+    };
+  }, [mostrarModalAsistencia]);
 
   // ===== CONSTANTES =====
   const TIPOS_VISUAL = [
@@ -43,9 +76,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
   // ===== FUNCIONES EXISTENTES =====
 
-  /**
-   * Agregar nueva visualización vacía
-   */
   const handleAgregarVisualizacion = () => {
     const nuevaVisualizacion = {
       id: Date.now(),
@@ -63,9 +93,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }));
   };
 
-  /**
-   * Eliminar visualización por ID
-   */
   const handleEliminarVisualizacion = (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta visualización?')) {
       setReportData(prev => ({
@@ -75,9 +102,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }
   };
 
-  /**
-   * Mover visualización hacia arriba
-   */
   const handleMoverArriba = (index) => {
     if (index === 0) return;
     
@@ -88,9 +112,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     });
   };
 
-  /**
-   * Mover visualización hacia abajo
-   */
   const handleMoverAbajo = (index) => {
     if (index === reportData.visualizaciones.length - 1) return;
     
@@ -101,9 +122,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     });
   };
 
-  /**
-   * Actualizar campo específico de una visualización
-   */
   const handleCambioVisualizacion = (id, campo, valor) => {
     setReportData(prev => ({
       ...prev,
@@ -113,9 +131,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }));
   };
 
-  /**
-   * Manejar carga de imagen y convertir a Base64
-   */
   const handleImagenChange = (id, e) => {
     const file = e.target.files[0];
     if (file) {
@@ -143,16 +158,10 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }
   };
 
-  /**
-   * Eliminar imagen
-   */
   const handleEliminarImagen = (id) => {
     handleCambioVisualizacion(id, 'imagen', null);
   };
 
-  /**
-   * Toggle campo SQL en multiselect
-   */
   const handleToggleCampo = (visualId, campo) => {
     setReportData(prev => ({
       ...prev,
@@ -170,32 +179,23 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
   // ===== NUEVAS FUNCIONES PARA IA =====
 
-  /**
-   * Abre el modal de análisis IA para una visualización específica
-   */
   const abrirModalIA = (visual) => {
     setVisualSeleccionadoIA(visual);
-    setModalIAVisible(true);
-    setImagenSeleccionada(null);
+    setMostrarModalAsistencia(true);
+    setImagenIA(null);
     setResultadoIA(null);
     setErrorIA(null);
   };
 
-  /**
-   * Cierra el modal y limpia estados
-   */
   const cerrarModalIA = () => {
-    setModalIAVisible(false);
+    setMostrarModalAsistencia(false);
     setVisualSeleccionadoIA(null);
-    setImagenSeleccionada(null);
+    setImagenIA(null);
     setResultadoIA(null);
     setErrorIA(null);
     setAnalizandoIA(false);
   };
 
-  /**
-   * Maneja la selección de imagen desde el input
-   */
   const manejarSeleccionImagen = (evento) => {
     const archivo = evento.target.files[0];
     if (archivo) {
@@ -209,20 +209,17 @@ const Visualizaciones = ({ reportData, setReportData }) => {
         return;
       }
 
-      setImagenSeleccionada(archivo);
+      setImagenIA(archivo);
       setErrorIA(null);
     }
   };
 
-  /**
-   * Maneja el drag and drop de imágenes
-   */
   const manejarDrop = (e) => {
     e.preventDefault();
     const archivo = e.dataTransfer.files[0];
     
     if (archivo && archivo.type.startsWith('image/')) {
-      setImagenSeleccionada(archivo);
+      setImagenIA(archivo);
       setErrorIA(null);
     } else {
       setErrorIA('Por favor suelta un archivo de imagen válido');
@@ -233,11 +230,8 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     e.preventDefault();
   };
 
-  /**
-   * Ejecuta el análisis de IA sobre la imagen seleccionada
-   */
   const ejecutarAnalisisIA = async () => {
-    if (!imagenSeleccionada) {
+    if (!imagenIA) {
       setErrorIA('Por favor selecciona una imagen primero');
       return;
     }
@@ -248,7 +242,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
     try {
       const camposDisponibles = reportData.camposDetectados || [];
-      const resultado = await analizarVisualizacionDeImagen(imagenSeleccionada, camposDisponibles);
+      const resultado = await analizarVisualizacionDeImagen(imagenIA, camposDisponibles);
 
       const validacion = validarRespuestaIA(resultado, 0.6);
       
@@ -267,35 +261,27 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }
   };
 
-  /**
-   * Aplica los resultados del análisis IA a la visualización
-   */
   const aplicarResultadosIA = () => {
     if (!resultadoIA || !visualSeleccionadoIA) return;
 
     const visualId = visualSeleccionadoIA.id;
 
-    // Aplicar título
     if (resultadoIA.titulo) {
       handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
     }
 
-    // Aplicar tipo de visualización
     if (resultadoIA.tipo) {
-      // Intentar hacer match con los tipos disponibles
       const tipoEncontrado = TIPOS_VISUAL.find(
         t => t.toLowerCase() === resultadoIA.tipo.toLowerCase()
       );
       handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado || resultadoIA.tipo);
     }
 
-    // Aplicar campos utilizados (con matching inteligente)
     if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles)) {
       const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
       const camposMatcheados = [];
 
       resultadoIA.camposVisibles.forEach(campoIA => {
-        // Buscar match exacto o parcial
         const match = camposDisponibles.find(
           campoReal => 
             campoReal.toLowerCase() === campoIA.toLowerCase() ||
@@ -311,23 +297,20 @@ const Visualizaciones = ({ reportData, setReportData }) => {
       handleCambioVisualizacion(visualId, 'camposUtilizados', camposMatcheados);
     }
 
-    // Aplicar métricas calculadas
     if (resultadoIA.metricasCalculadas) {
       handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
     }
 
-    // Aplicar descripción
     if (resultadoIA.descripcion) {
       handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
     }
 
-    // Guardar la imagen analizada
-    if (imagenSeleccionada) {
+    if (imagenIA) {
       const reader = new FileReader();
       reader.onload = (e) => {
         handleCambioVisualizacion(visualId, 'imagen', e.target.result);
       };
-      reader.readAsDataURL(imagenSeleccionada);
+      reader.readAsDataURL(imagenIA);
     }
 
     cerrarModalIA();
@@ -566,7 +549,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
       )}
 
       {/* ===== MODAL DE IA ===== */}
-      {modalIAVisible && (
+      {mostrarModalAsistencia && (
         <div className={styles.modalOverlay} onClick={cerrarModalIA}>
           <div className={styles.modalContenido} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
@@ -596,14 +579,14 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                   onDragOver={manejarDragOver}
                   onClick={() => inputImagenRef.current?.click()}
                 >
-                  {imagenSeleccionada ? (
+                  {imagenIA ? (
                     <div className={styles.imagenSeleccionada}>
                       <img 
-                        src={URL.createObjectURL(imagenSeleccionada)} 
+                        src={URL.createObjectURL(imagenIA)} 
                         alt="Imagen seleccionada"
                         className={styles.imagenSeleccionadaPreview}
                       />
-                      <p className={styles.imagenNombre}>{imagenSeleccionada.name}</p>
+                      <p className={styles.imagenNombre}>{imagenIA.name}</p>
                     </div>
                   ) : (
                     <div className={styles.dropZonePlaceholder}>
@@ -614,6 +597,14 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                       <p className={styles.dropZoneSubtexto}>
                         o haz clic para seleccionar
                       </p>
+                      
+                      {/* ⭐ NUEVO: Hint de Ctrl+V */}
+                      <div className={styles.pasteHint}>
+                        <span className={styles.pasteIcon}>⌨️</span>
+                        <span>
+                          O presiona <kbd>Ctrl</kbd> + <kbd>V</kbd> para pegar captura
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -628,7 +619,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
               </div>
 
               {/* Paso 2: Analizar */}
-              {imagenSeleccionada && !resultadoIA && (
+              {imagenIA && !resultadoIA && (
                 <div className={styles.pasoModal}>
                   <h4 className={styles.pasoTitulo}>
                     <span className={styles.pasoNumero}>2</span>

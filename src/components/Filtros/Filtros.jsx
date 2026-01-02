@@ -1,7 +1,8 @@
 /**
  * =====================================================
- * COMPONENTE: FILTROS Y PARÁMETROS
+ * COMPONENTE: FILTROS Y PARÁMETROS v2.1
  * Sección 3 - Con Análisis de IA Integrado
+ * ⭐ NUEVO: Soporte Ctrl+V para pegar capturas
  * =====================================================
  */
 
@@ -16,12 +17,12 @@ const Filtros = ({ datos, onGuardar }) => {
   const [campoTemporal, setCampoTemporal] = useState('');
   
   // ===== NUEVOS ESTADOS PARA IA =====
-  const [modalIAVisible, setModalIAVisible] = useState(false);
+  const [mostrarModalIA, setMostrarModalIA] = useState(false);
   const [filtroSeleccionadoIA, setFiltroSeleccionadoIA] = useState(null);
-  const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
+  const [imagenAnalisis, setImagenAnalisis] = useState(null);
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [resultadoIA, setResultadoIA] = useState(null);
-  const [errorIA, setErrorIA] = useState(null);
+  const [errorAnalisis, setErrorAnalisis] = useState(null);
   
   const inputImagenRef = useRef(null);
 
@@ -31,6 +32,38 @@ const Filtros = ({ datos, onGuardar }) => {
       setFiltros(datos.filtros);
     }
   }, [datos.filtros]);
+
+  // ⭐ NUEVO: EFECTO PARA DETECTAR CTRL+V
+  useEffect(() => {
+    if (!mostrarModalIA) return;
+
+    const manejarPaste = async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault();
+          
+          const blob = items[i].getAsFile();
+          const nombreArchivo = `captura-pegada-${Date.now()}.png`;
+          const archivo = new File([blob], nombreArchivo, { type: blob.type });
+          
+          setImagenAnalisis(archivo);
+          setErrorAnalisis(null);
+          
+          console.log('✅ Imagen pegada desde portapapeles');
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', manejarPaste);
+    
+    return () => {
+      document.removeEventListener('paste', manejarPaste);
+    };
+  }, [mostrarModalIA]);
 
   // ===== CONSTANTES =====
   const tiposControl = [
@@ -50,9 +83,6 @@ const Filtros = ({ datos, onGuardar }) => {
     onGuardar({ filtros: nuevosFiltros });
   };
 
-  /**
-   * Agrega un nuevo filtro vacío y LO ABRE AUTOMÁTICAMENTE
-   */
   const handleAgregarFiltro = () => {
     const nuevoId = Date.now();
     
@@ -158,62 +188,50 @@ const Filtros = ({ datos, onGuardar }) => {
 
   // ===== NUEVAS FUNCIONES PARA IA =====
 
-  /**
-   * Abre el modal de análisis IA para un filtro específico
-   */
   const abrirModalIA = (filtro, index) => {
     setFiltroSeleccionadoIA({ filtro, index });
-    setModalIAVisible(true);
-    setImagenSeleccionada(null);
+    setMostrarModalIA(true);
+    setImagenAnalisis(null);
     setResultadoIA(null);
-    setErrorIA(null);
+    setErrorAnalisis(null);
   };
 
-  /**
-   * Cierra el modal y limpia estados
-   */
   const cerrarModalIA = () => {
-    setModalIAVisible(false);
+    setMostrarModalIA(false);
     setFiltroSeleccionadoIA(null);
-    setImagenSeleccionada(null);
+    setImagenAnalisis(null);
     setResultadoIA(null);
-    setErrorIA(null);
+    setErrorAnalisis(null);
     setAnalizandoIA(false);
   };
 
-  /**
-   * Maneja la selección de imagen desde el input
-   */
   const manejarSeleccionImagen = (evento) => {
     const archivo = evento.target.files[0];
     if (archivo) {
       if (!archivo.type.startsWith('image/')) {
-        setErrorIA('Por favor selecciona un archivo de imagen válido');
+        setErrorAnalisis('Por favor selecciona un archivo de imagen válido');
         return;
       }
 
       if (archivo.size > 5 * 1024 * 1024) {
-        setErrorIA('La imagen es demasiado grande. Máximo 5MB');
+        setErrorAnalisis('La imagen es demasiado grande. Máximo 5MB');
         return;
       }
 
-      setImagenSeleccionada(archivo);
-      setErrorIA(null);
+      setImagenAnalisis(archivo);
+      setErrorAnalisis(null);
     }
   };
 
-  /**
-   * Maneja el drag and drop de imágenes
-   */
   const manejarDrop = (e) => {
     e.preventDefault();
     const archivo = e.dataTransfer.files[0];
     
     if (archivo && archivo.type.startsWith('image/')) {
-      setImagenSeleccionada(archivo);
-      setErrorIA(null);
+      setImagenAnalisis(archivo);
+      setErrorAnalisis(null);
     } else {
-      setErrorIA('Por favor suelta un archivo de imagen válido');
+      setErrorAnalisis('Por favor suelta un archivo de imagen válido');
     }
   };
 
@@ -221,22 +239,19 @@ const Filtros = ({ datos, onGuardar }) => {
     e.preventDefault();
   };
 
-  /**
-   * Ejecuta el análisis de IA sobre la imagen seleccionada
-   */
   const ejecutarAnalisisIA = async () => {
-    if (!imagenSeleccionada) {
-      setErrorIA('Por favor selecciona una imagen primero');
+    if (!imagenAnalisis) {
+      setErrorAnalisis('Por favor selecciona una imagen primero');
       return;
     }
 
     setAnalizandoIA(true);
-    setErrorIA(null);
+    setErrorAnalisis(null);
     setResultadoIA(null);
 
     try {
       const camposDisponibles = datos.camposDetectados || [];
-      const resultado = await analizarFiltroDeImagen(imagenSeleccionada, camposDisponibles);
+      const resultado = await analizarFiltroDeImagen(imagenAnalisis, camposDisponibles);
 
       const validacion = validarRespuestaIA(resultado, 0.6);
       
@@ -249,21 +264,17 @@ const Filtros = ({ datos, onGuardar }) => {
 
     } catch (error) {
       console.error('❌ Error al analizar imagen:', error);
-      setErrorIA(`Error al analizar imagen: ${error.message}`);
+      setErrorAnalisis(`Error al analizar imagen: ${error.message}`);
     } finally {
       setAnalizandoIA(false);
     }
   };
 
-  /**
-   * Aplica los resultados del análisis IA al filtro
-   */
   const aplicarResultadosIA = () => {
     if (!resultadoIA || !filtroSeleccionadoIA) return;
 
     const { index } = filtroSeleccionadoIA;
 
-    // Aplicar cada campo detectado
     if (resultadoIA.nombre) {
       handleActualizarFiltro(index, 'nombre', resultadoIA.nombre);
     }
@@ -276,7 +287,6 @@ const Filtros = ({ datos, onGuardar }) => {
       handleActualizarFiltro(index, 'valores', resultadoIA.valores);
     }
 
-    // Para campo SQL: intentar hacer match con campos disponibles
     if (resultadoIA.campoSQLSugerido) {
       const campoEncontrado = columnasDisponibles.find(
         col => col.toLowerCase().includes(resultadoIA.campoSQLSugerido.toLowerCase()) ||
@@ -287,7 +297,6 @@ const Filtros = ({ datos, onGuardar }) => {
         handleActualizarFiltro(index, 'campoSQL', campoEncontrado);
         handleActualizarFiltro(index, 'camposRaw', [campoEncontrado]);
       } else {
-        // Si no hay match, dejar el sugerido como texto
         handleActualizarFiltro(index, 'campoSQL', resultadoIA.campoSQLSugerido);
       }
     }
@@ -296,14 +305,13 @@ const Filtros = ({ datos, onGuardar }) => {
       handleActualizarFiltro(index, 'descripcion', resultadoIA.descripcion);
     }
 
-    // Guardar también la imagen analizada como referencia
-    if (imagenSeleccionada) {
+    if (imagenAnalisis) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        handleActualizarFiltro(index, 'imagenReferencia', imagenSeleccionada);
+        handleActualizarFiltro(index, 'imagenReferencia', imagenAnalisis);
         handleActualizarFiltro(index, 'imagenPreview', e.target.result);
       };
-      reader.readAsDataURL(imagenSeleccionada);
+      reader.readAsDataURL(imagenAnalisis);
     }
 
     cerrarModalIA();
@@ -548,7 +556,7 @@ const Filtros = ({ datos, onGuardar }) => {
       )}
 
       {/* ===== MODAL DE IA ===== */}
-      {modalIAVisible && (
+      {mostrarModalIA && (
         <div className={styles.modalOverlay} onClick={cerrarModalIA}>
           <div className={styles.modalContenido} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
@@ -578,14 +586,14 @@ const Filtros = ({ datos, onGuardar }) => {
                   onDragOver={manejarDragOver}
                   onClick={() => inputImagenRef.current?.click()}
                 >
-                  {imagenSeleccionada ? (
+                  {imagenAnalisis ? (
                     <div className={styles.imagenSeleccionada}>
                       <img 
-                        src={URL.createObjectURL(imagenSeleccionada)} 
+                        src={URL.createObjectURL(imagenAnalisis)} 
                         alt="Imagen seleccionada"
                         className={styles.imagenSeleccionadaPreview}
                       />
-                      <p className={styles.imagenNombre}>{imagenSeleccionada.name}</p>
+                      <p className={styles.imagenNombre}>{imagenAnalisis.name}</p>
                     </div>
                   ) : (
                     <div className={styles.dropZonePlaceholder}>
@@ -596,6 +604,14 @@ const Filtros = ({ datos, onGuardar }) => {
                       <p className={styles.dropZoneSubtexto}>
                         o haz clic para seleccionar
                       </p>
+                      
+                      {/* ⭐ NUEVO: Hint de Ctrl+V */}
+                      <div className={styles.pasteHint}>
+                        <span className={styles.pasteIcon}>⌨️</span>
+                        <span>
+                          O presiona <kbd>Ctrl</kbd> + <kbd>V</kbd> para pegar captura
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -610,7 +626,7 @@ const Filtros = ({ datos, onGuardar }) => {
               </div>
 
               {/* Paso 2: Analizar */}
-              {imagenSeleccionada && !resultadoIA && (
+              {imagenAnalisis && !resultadoIA && (
                 <div className={styles.pasoModal}>
                   <h4 className={styles.pasoTitulo}>
                     <span className={styles.pasoNumero}>2</span>
@@ -685,9 +701,9 @@ const Filtros = ({ datos, onGuardar }) => {
               )}
 
               {/* Errores */}
-              {errorIA && (
+              {errorAnalisis && (
                 <div className={styles.errorIA}>
-                  ⚠️ {errorIA}
+                  ⚠️ {errorAnalisis}
                 </div>
               )}
             </div>
