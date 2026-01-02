@@ -1,13 +1,16 @@
 /**
  * =====================================================
  * COMPONENTE: INFORMACIÓN BÁSICA
- * Sección 1 - Con Análisis de Dashboard Completo
+ * Sección 1 - Con Análisis de Dashboard Completo + Jerarquía
+ * PARTE 1/2: Imports, Estados y Funciones
  * =====================================================
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './InfoBasica.module.css';
 import { analizarDashboardCompleto, validarRespuestaIA } from '../../utils/ai/analizarImagen';
+import { detectarJerarquiaDesdeArbol } from '../../utils/ai/analizarJerarquia';
+import { obtenerAreas, obtenerSubareas } from '../../utils/arbolReportes';
 
 const InfoBasica = ({ datos, onGuardar }) => {
   // ===== ESTADO EXISTENTE =====
@@ -20,7 +23,27 @@ const InfoBasica = ({ datos, onGuardar }) => {
     usuarios: datos?.usuarios || ''
   });
 
-  // ===== NUEVOS ESTADOS PARA IA =====
+  // ===== NUEVO: ESTADO PARA JERARQUÍA =====
+  const [jerarquia, setJerarquia] = useState({
+    sistema: datos?.jerarquia?.sistema || 'Banner',
+    area: datos?.jerarquia?.area || '',
+    subarea: datos?.jerarquia?.subarea || '',
+    reportesRelacionados: datos?.jerarquia?.reportesRelacionados || [],
+    confianzaDeteccion: datos?.jerarquia?.confianzaDeteccion || 0,
+    metodoDeteccion: datos?.jerarquia?.metodoDeteccion || '',
+    breadcrumb: datos?.jerarquia?.breadcrumb || '',
+    razonamiento: datos?.jerarquia?.razonamiento || ''
+  });
+
+  // Estado para dropdowns dependientes
+  const [areasDisponibles, setAreasDisponibles] = useState([]);
+  const [subareasDisponibles, setSubareasDisponibles] = useState([]);
+  
+  // Estados para detección IA de jerarquía
+  const [detectandoJerarquia, setDetectandoJerarquia] = useState(false);
+  const [errorJerarquia, setErrorJerarquia] = useState(null);
+
+  // ===== NUEVOS ESTADOS PARA IA DASHBOARD =====
   const [modalIAVisible, setModalIAVisible] = useState(false);
   const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
   const [analizandoIA, setAnalizandoIA] = useState(false);
@@ -29,12 +52,43 @@ const InfoBasica = ({ datos, onGuardar }) => {
   
   const inputImagenRef = useRef(null);
 
-  // Opciones para el dropdown de categoría
+  // Opciones para el dropdown de categoría (mantener compatibilidad)
   const categorias = [
     'Gestión Académica',
     'Gestión Financiera',
     'Gestión Administrativa'
   ];
+
+  // ===== EFECTOS PARA JERARQUÍA =====
+
+  /**
+   * Cargar áreas disponibles al montar componente
+   */
+  useEffect(() => {
+    const areas = obtenerAreas();
+    setAreasDisponibles(areas);
+  }, []);
+
+  /**
+   * Actualizar subáreas cuando cambia el área
+   */
+  useEffect(() => {
+    if (jerarquia.area) {
+      const subareas = obtenerSubareas(jerarquia.area);
+      setSubareasDisponibles(subareas);
+    } else {
+      setSubareasDisponibles([]);
+    }
+  }, [jerarquia.area]);
+
+  /**
+   * Guardar jerarquía en datos globales cuando cambia
+   */
+  useEffect(() => {
+    if (jerarquia.area || jerarquia.subarea) {
+      onGuardar({ jerarquia });
+    }
+  }, [jerarquia]);
 
   // ===== FUNCIONES EXISTENTES =====
 
@@ -51,7 +105,110 @@ const InfoBasica = ({ datos, onGuardar }) => {
     onGuardar(nuevosData);
   };
 
-  // ===== NUEVAS FUNCIONES PARA IA =====
+  // ===== NUEVAS FUNCIONES PARA JERARQUÍA =====
+
+  /**
+   * Maneja cambios en los dropdowns de jerarquía
+   */
+  const handleJerarquiaChange = (e) => {
+    const { name, value } = e.target;
+    
+    const nuevaJerarquia = {
+      ...jerarquia,
+      [name]: value
+    };
+
+    // Si cambió el área, resetear subárea
+    if (name === 'area') {
+      nuevaJerarquia.subarea = '';
+      nuevaJerarquia.reportesRelacionados = [];
+    }
+
+    // Si se seleccionó manualmente, marcar método
+    if ((name === 'area' || name === 'subarea') && value) {
+      nuevaJerarquia.metodoDeteccion = 'manual';
+      nuevaJerarquia.confianzaDeteccion = 1.0;
+    }
+
+    // Generar breadcrumb
+    if (nuevaJerarquia.area && nuevaJerarquia.subarea) {
+      nuevaJerarquia.breadcrumb = `${nuevaJerarquia.sistema} > ${nuevaJerarquia.area} > ${nuevaJerarquia.subarea}`;
+    }
+
+    setJerarquia(nuevaJerarquia);
+  };
+
+  /**
+   * Detecta jerarquía automáticamente desde código del reporte
+   */
+  const detectarJerarquiaAutomatica = async () => {
+    if (!formData.codigoReporte) {
+      setErrorJerarquia('Por favor ingresa el código del reporte primero');
+      return;
+    }
+
+    setDetectandoJerarquia(true);
+    setErrorJerarquia(null);
+
+    try {
+      const resultado = await detectarJerarquiaDesdeArbol(
+        formData.codigoReporte,
+        formData.nombreReporte
+      );
+
+      console.log('✅ Jerarquía detectada:', resultado);
+
+      // Generar breadcrumb
+      const breadcrumb = resultado.area && resultado.subarea
+        ? `${resultado.sistema} > ${resultado.area} > ${resultado.subarea}`
+        : '';
+
+      setJerarquia({
+        sistema: resultado.sistema || 'Banner',
+        area: resultado.area || '',
+        subarea: resultado.subarea || '',
+        reportesRelacionados: resultado.reportesRelacionados || [],
+        confianzaDeteccion: resultado.confianza || 0,
+        metodoDeteccion: resultado.metodo || 'inferencia_ia',
+        breadcrumb: breadcrumb,
+        razonamiento: resultado.razonamiento || ''
+      });
+
+      // Mostrar mensaje según confianza
+      if (resultado.confianza >= 0.9) {
+        alert('✅ Jerarquía detectada con alta confianza');
+      } else if (resultado.confianza >= 0.7) {
+        alert('⚠️ Jerarquía detectada con confianza media. Revisa los resultados.');
+      } else {
+        alert('⚠️ Jerarquía detectada con baja confianza. Por favor verifica manualmente.');
+      }
+
+    } catch (error) {
+      console.error('❌ Error al detectar jerarquía:', error);
+      setErrorJerarquia(`Error: ${error.message}`);
+    } finally {
+      setDetectandoJerarquia(false);
+    }
+  };
+
+  /**
+   * Limpia la jerarquía detectada
+   */
+  const limpiarJerarquia = () => {
+    setJerarquia({
+      sistema: 'Banner',
+      area: '',
+      subarea: '',
+      reportesRelacionados: [],
+      confianzaDeteccion: 0,
+      metodoDeteccion: '',
+      breadcrumb: '',
+      razonamiento: ''
+    });
+    setErrorJerarquia(null);
+  };
+
+  // ===== FUNCIONES PARA IA DASHBOARD =====
 
   /**
    * Abre el modal de análisis IA
@@ -193,15 +350,25 @@ const InfoBasica = ({ datos, onGuardar }) => {
 
   // Calcular campos completados para barra de progreso
   const camposCompletados = Object.values(formData).filter(val => val !== '').length;
-  const camposRequeridos = 3; // nombre, código, categoría
+  const camposRequeridos = 3;
   const camposRequeridosCompletos = [
     formData.nombreReporte,
     formData.codigoReporte,
     formData.categoria
   ].filter(val => val !== '').length;
 
-  // ===== RENDER =====
+  // CONTINÚA EN PARTE 2...
+  /**
+ * =====================================================
+ * COMPONENTE: INFORMACIÓN BÁSICA
+ * PARTE 2/2: JSX Render Completo
+ * =====================================================
+ * 
+ * IMPORTANTE: Esta es la continuación de la Parte 1
+ * Copia ambas partes y únelas en un solo archivo InfoBasica.jsx
+ */
 
+  // ===== RENDER =====
   return (
     <div className={styles.container}>
       
@@ -213,7 +380,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
         </p>
       </div>
 
-      {/* NUEVO: Sección de IA */}
+      {/* Sección de IA Dashboard */}
       <div className={styles.seccionIA}>
         <div className={styles.seccionIAContent}>
           <div className={styles.seccionIATexto}>
@@ -313,6 +480,154 @@ const InfoBasica = ({ datos, onGuardar }) => {
 
         </div>
 
+        {/* ===== NUEVO: SECCIÓN JERARQUÍA ORGANIZACIONAL ===== */}
+        <div className={styles.seccionJerarquia}>
+          <div className={styles.jerarquiaHeader}>
+            <h3 className={styles.jerarquiaTitulo}>📂 Jerarquía Organizacional</h3>
+            <p className={styles.jerarquiaDescripcion}>
+              Ubica este reporte en el árbol organizacional de Banner
+            </p>
+          </div>
+
+          {/* Breadcrumb si existe */}
+          {jerarquia.breadcrumb && (
+            <div className={styles.breadcrumb}>
+              <span className={styles.breadcrumbIcono}>📍</span>
+              <span className={styles.breadcrumbTexto}>{jerarquia.breadcrumb}</span>
+              {jerarquia.confianzaDeteccion > 0 && (
+                <span className={styles.breadcrumbConfianza}>
+                  {jerarquia.metodoDeteccion === 'busqueda_directa' && '✓ Exacto'}
+                  {jerarquia.metodoDeteccion === 'inferencia_ia' && `🤖 ${(jerarquia.confianzaDeteccion * 100).toFixed(0)}%`}
+                  {jerarquia.metodoDeteccion === 'manual' && '✋ Manual'}
+                  {jerarquia.metodoDeteccion === 'fallback_basico' && '⚠️ Inferido'}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Botón de detección automática */}
+          <div className={styles.jerarquiaDeteccion}>
+            <button
+              type="button"
+              onClick={detectarJerarquiaAutomatica}
+              disabled={!formData.codigoReporte || detectandoJerarquia}
+              className={styles.btnDetectarJerarquia}
+              title={!formData.codigoReporte ? 'Ingresa el código del reporte primero' : 'Detectar jerarquía con IA'}
+            >
+              {detectandoJerarquia ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Detectando...
+                </>
+              ) : (
+                <>
+                  🤖 Detectar desde Código
+                </>
+              )}
+            </button>
+
+            {jerarquia.area && (
+              <button
+                type="button"
+                onClick={limpiarJerarquia}
+                className={styles.btnLimpiarJerarquia}
+              >
+                🔄 Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Error de detección */}
+          {errorJerarquia && (
+            <div className={styles.errorJerarquia}>
+              ⚠️ {errorJerarquia}
+            </div>
+          )}
+
+          {/* Dropdowns de jerarquía */}
+          <div className={styles.jerarquiaGrid}>
+            
+            {/* Sistema (readonly) */}
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Sistema</label>
+              <input
+                type="text"
+                value={jerarquia.sistema}
+                readOnly
+                className={styles.inputReadonly}
+              />
+            </div>
+
+            {/* Área */}
+            <div className={styles.formGroup}>
+              <label htmlFor="jerarquia-area" className={styles.label}>
+                Área
+              </label>
+              <select
+                id="jerarquia-area"
+                name="area"
+                value={jerarquia.area}
+                onChange={handleJerarquiaChange}
+                className={styles.select}
+              >
+                <option value="">-- Selecciona un área --</option>
+                {areasDisponibles.map((area, index) => (
+                  <option key={index} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Subárea */}
+            <div className={styles.formGroup}>
+              <label htmlFor="jerarquia-subarea" className={styles.label}>
+                Subárea
+              </label>
+              <select
+                id="jerarquia-subarea"
+                name="subarea"
+                value={jerarquia.subarea}
+                onChange={handleJerarquiaChange}
+                className={styles.select}
+                disabled={!jerarquia.area}
+              >
+                <option value="">-- Selecciona una subárea --</option>
+                {subareasDisponibles.map((subarea, index) => (
+                  <option key={index} value={subarea}>
+                    {subarea}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+          </div>
+
+          {/* Reportes relacionados */}
+          {jerarquia.reportesRelacionados && jerarquia.reportesRelacionados.length > 0 && (
+            <div className={styles.reportesRelacionados}>
+              <h4 className={styles.relacionadosTitulo}>
+                🔗 Reportes Relacionados ({jerarquia.reportesRelacionados.length})
+              </h4>
+              <div className={styles.relacionadosLista}>
+                {jerarquia.reportesRelacionados.slice(0, 5).map((reporte, index) => (
+                  <div key={index} className={styles.relacionadoItem}>
+                    <span className={styles.relacionadoCodigo}>{reporte.codigo}</span>
+                    <span className={styles.relacionadoNombre}>{reporte.nombre}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Razonamiento de IA (si existe) */}
+          {jerarquia.razonamiento && jerarquia.metodoDeteccion === 'inferencia_ia' && (
+            <div className={styles.razonamientoIA}>
+              <strong>💡 Razonamiento:</strong> {jerarquia.razonamiento}
+            </div>
+          )}
+        </div>
+
         {/* Objetivo (campo grande) */}
         <div className={styles.formGroup}>
           <label htmlFor="objetivo" className={styles.label}>
@@ -386,7 +701,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
         </span>
       </div>
 
-      {/* ===== MODAL DE IA ===== */}
+      {/* ===== MODAL DE IA DASHBOARD ===== */}
       {modalIAVisible && (
         <div className={styles.modalOverlay} onClick={cerrarModalIA}>
           <div className={styles.modalContenido} onClick={(e) => e.stopPropagation()}>

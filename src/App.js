@@ -23,13 +23,14 @@ import './styles/global.css';
  * 
  * Desarrollado por: Ricardo Aral
  * Email: jho.araque84@gmail.com
- * Versión: 4.0 (CON GUÍA DE RECONSTRUCCIÓN) ✅
- * Fecha: 2026-01-01
+ * Versión: 4.1 (CON JERARQUÍA ORGANIZACIONAL) ✅
+ * Fecha: 2026-01-02
  * 
- * NOVEDADES v4.0:
- * - Módulo 8: Guía de Reconstrucción Power BI con IA
- * - Genera paso a paso detallado para recrear el reporte
- * - Incluye capturas de referencia y código SQL
+ * NOVEDADES v4.1:
+ * - Jerarquía organizacional de reportes (Banner > Área > Subárea)
+ * - Detección automática con IA basada en código de reporte
+ * - Reportes relacionados y breadcrumb navegable
+ * - Integración completa con árbol de reportes Banner
  */
 
 function App() {
@@ -60,6 +61,18 @@ function App() {
     objetivo: '',
     usuarios: '',
     
+    // ===== JERARQUÍA ORGANIZACIONAL (NUEVO v4.1) ===== ✅
+    jerarquia: {
+      sistema: 'Banner',                    // Sistema base (constante)
+      area: '',                             // Gestión Académica, Gestión Financiera, etc.
+      subarea: '',                          // Administración Académica, Cobranza, etc.
+      reportesRelacionados: [],             // Array de {codigo, nombre}
+      confianzaDeteccion: 0,                // 0.0 a 1.0 (nivel de certeza de detección IA)
+      metodoDeteccion: '',                  // 'busqueda_directa', 'inferencia_ia', 'manual', 'fallback_basico'
+      breadcrumb: '',                       // "Banner > Gestión Académica > Admin. Académica"
+      razonamiento: ''                      // Explicación de la IA (si aplica)
+    },
+    
     // ===== SECCIÓN 2: CONSULTA SQL Y ESTRUCTURA ===== ✅
     consultaSQL: '',
     estructuraColumnas: '',
@@ -82,7 +95,7 @@ function App() {
     notasTecnicas: '',
     historialCambios: '',
     
-    // ===== SECCIÓN 8: GUÍA DE RECONSTRUCCIÓN ===== ✅ NUEVO
+    // ===== SECCIÓN 8: GUÍA DE RECONSTRUCCIÓN ===== ✅
     guiaReconstruccion: null, // Objeto generado por IA
     
     // ===== METADATOS =====
@@ -210,7 +223,7 @@ function App() {
       case 7:
         return renderOutputs();
       
-      case 8: // ✅ NUEVO
+      case 8:
         return (
           <GuiaReconstruccion 
             reportData={reportData}
@@ -453,7 +466,6 @@ function App() {
             <span className="step-label">Outputs</span>
           </div>
 
-          {/* ✅ NUEVO: Sección 8 */}
           <div 
             className={`step ${seccionActual === 8 ? 'active' : ''}`}
             onClick={() => handleCambiarSeccion(8)}
@@ -510,7 +522,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 4.0 (CON GUÍA RECONSTRUCCIÓN)</span>
+          <span>🗂️ Versión 4.1 (CON JERARQUÍA ORGANIZACIONAL)</span>
         </p>
       </footer>
 

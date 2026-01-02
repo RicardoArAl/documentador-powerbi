@@ -712,3 +712,492 @@
     padding: 1.5rem;
   }
 }
+/* ============ SECCIÓN JERARQUÍA ORGANIZACIONAL ============ */
+.seccionJerarquia {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #86efac;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  animation: slideIn 0.6s ease;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
+}
+
+.jerarquiaHeader {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.jerarquiaTitulo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 0.5rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.jerarquiaDescripcion {
+  color: #166534;
+  font-size: 0.95rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ============ BREADCRUMB ============ */
+.breadcrumb {
+  background: white;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.breadcrumbIcono {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.breadcrumbTexto {
+  flex: 1;
+  font-weight: 600;
+  color: #166534;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.breadcrumbConfianza {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ============ DETECCIÓN AUTOMÁTICA ============ */
+.jerarquiaDeteccion {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btnDetectarJerarquia {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btnDetectarJerarquia::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btnDetectarJerarquia:hover::before {
+  left: 100%;
+}
+
+.btnDetectarJerarquia:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.btnDetectarJerarquia:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.btnDetectarJerarquia:disabled:hover {
+  transform: none;
+}
+
+.btnLimpiarJerarquia {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+
+.btnLimpiarJerarquia:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
+}
+
+/* ============ ERROR JERARQUÍA ============ */
+.errorJerarquia {
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* ============ GRID DE JERARQUÍA ============ */
+.jerarquiaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.inputReadonly {
+  padding: 0.9rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-weight: 600;
+}
+
+/* ============ REPORTES RELACIONADOS ============ */
+.reportesRelacionados {
+  background: white;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  animation: fadeInUp 0.5s ease;
+}
+
+.relacionadosTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #166534;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.relacionadosLista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.relacionadoItem {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.relacionadoItem:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+}
+
+.relacionadoCodigo {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+}
+
+.relacionadoNombre {
+  flex: 1;
+  color: #166534;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ============ RAZONAMIENTO IA ============ */
+.razonamientoIA {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #60a5fa;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: #1e40af;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.razonamientoIA strong {
+  color: #1e3a8a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ============ RESPONSIVE JERARQUÍA ============ */
+@media (max-width: 768px) {
+  .seccionJerarquia {
+    padding: 1.5rem;
+  }
+
+  .jerarquiaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .breadcrumb {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .breadcrumbConfianza {
+    align-self: flex-start;
+  }
+
+  .jerarquiaDeteccion {
+    flex-direction: column;
+  }
+
+  .btnDetectarJerarquia,
+  .btnLimpiarJerarquia {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .relacionadoItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .relacionadoCodigo {
+    align-self: flex-start;
+  }
+
+  .razonamientoIA {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .seccionJerarquia {
+    padding: 1rem;
+  }
+
+  .jerarquiaTitulo {
+    font-size: 1.1rem;
+  }
+
+  .breadcrumbTexto {
+    font-size: 0.9rem;
+  }
+
+  .relacionadosLista {
+    gap: 0.6rem;
+  }
+
+  .relacionadoNombre {
+    font-size: 0.85rem;
+  }
+
+  .razonamientoIA {
+    font-size: 0.85rem;
+    padding: 0.8rem 1rem;
+  }
+}
+
+/* ============ ANIMACIONES ADICIONALES ============ */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.btnDetectarJerarquia:disabled .spinner {
+  animation: spin 0.6s linear infinite, pulse 1.5s ease-in-out infinite;
+}
+
+/* Efecto de brillo en breadcrumb cuando está completo */
+.breadcrumb:has(.breadcrumbConfianza) {
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(34, 197, 94, 0.25), 0 0 20px rgba(34, 197, 94, 0.1);
+  }
+}
+
+/* Efecto hover mejorado en items relacionados */
+.relacionadoItem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
+  transition: width 0.3s ease;
+  border-radius: 8px 0 0 8px;
+}
+
+.relacionadoItem:hover::before {
+  width: 100%;
+}
+
+/* Tooltip para botón deshabilitado */
+.btnDetectarJerarquia:disabled::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.btnDetectarJerarquia:disabled:hover::after {
+  opacity: 1;
+}
+
+/* Badge de confianza con animación */
+.breadcrumbConfianza {
+  position: relative;
+  overflow: hidden;
+}
+
+.breadcrumbConfianza::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: slideShine 3s infinite;
+}
+
+@keyframes slideShine {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
