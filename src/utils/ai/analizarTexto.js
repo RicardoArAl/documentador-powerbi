@@ -1,12 +1,18 @@
 /**
  * =====================================================
- * ANALIZAR TEXTO - UTILIDADES GEMINI PARA CÓDIGO SQL
+ * ANALIZAR TEXTO - UTILIDADES GEMINI PARA CÓDIGO SQL (v2.0)
  * 
  * Funciones para analizar código SQL (Stored Procedures,
  * Functions, Views, Queries) usando Gemini Text API
  * 
+ * MEJORAS v2.0:
+ * - Prompts mucho más detallados y específicos
+ * - Mejor contexto académico (Banner, SNIES, etc.)
+ * - Análisis de patrones comunes
+ * - Descripciones más ricas y contextuales
+ * 
  * Autor: Ricardo Aral
- * Fecha: 2025-12-29
+ * Fecha Actualización: 2026-01-01
  * =====================================================
  */
 
@@ -14,71 +20,193 @@ import { generarContenidoTexto, extraerJSON } from './geminiClient';
 
 /**
  * =====================================================
- * FUNCIÓN 1: ANALIZAR CÓDIGO SQL COMPLETO
+ * FUNCIÓN 1: ANALIZAR CÓDIGO SQL COMPLETO (MEJORADO v2.0)
  * =====================================================
- * Analiza un código SQL (SP, Function, View, Query)
- * y extrae información estructurada
- * 
- * @param {string} codigoSQL - Código SQL completo
- * @param {string} tipo - Tipo de objeto ('Stored Procedure', 'Function', etc.)
- * @returns {Promise<Object>} - Información estructurada del código
  */
 export const analizarCodigoSQL = async (codigoSQL, tipo = 'Query') => {
-  const prompt = `
-Eres un experto en SQL Server y bases de datos. Analiza este código SQL y extrae información estructurada.
+  const prompt = `Eres un experto en SQL Server, Oracle y análisis de código SQL para sistemas académicos (Banner, SNIES).
 
 **TIPO DE OBJETO:** ${tipo}
 
-**CÓDIGO SQL:**
+**CÓDIGO SQL A ANALIZAR:**
 \`\`\`sql
 ${codigoSQL}
 \`\`\`
 
-**INSTRUCCIONES:**
-1. Identifica el NOMBRE del objeto (procedimiento, función, view, etc.)
-2. Confirma o corrige el TIPO de objeto
-3. Extrae todos los PARÁMETROS de entrada con sus tipos
-4. Identifica las TABLAS INVOLUCRADAS (tanto de entrada como de salida)
-5. Detecta los CAMPOS/COLUMNAS que retorna (si aplica)
-6. Genera una DESCRIPCIÓN funcional de lo que hace el código
-7. Identifica dependencias o consideraciones importantes
+**INSTRUCCIONES DETALLADAS:**
 
-**TIPOS VÁLIDOS:**
-- Stored Procedure
-- Function
-- View
-- Query
-- Table-Valued Function
-- Scalar Function
-- Trigger
-- Otro
+1. **IDENTIFICACIÓN PRECISA:**
+   - Extrae el NOMBRE exacto del objeto (sin CREATE, ALTER, DROP)
+   - Confirma o corrige el TIPO de objeto
+   - Identifica el esquema si está presente (dbo, SATURN, GENERAL, etc.)
+
+2. **PARÁMETROS COMPLETOS:**
+   - Lista TODOS los parámetros de entrada con sus tipos
+   - Indica si son obligatorios (@Param INT) u opcionales (@Param INT = NULL)
+   - Incluye valores por defecto si existen
+   - Formato: "@ProgramaID INT, @PeriodoID VARCHAR(10) = NULL"
+
+3. **TABLAS Y VISTAS INVOLUCRADAS:**
+   
+   **Tablas de ENTRADA (FROM, JOIN, WHERE):**
+   - Incluye prefijos de esquema si están presentes
+   - Identifica patrones Banner: SATURN_*, GENERAL_*, FINANCE_*, etc.
+   - Menciona aliases si hay JOINs complejos
+   
+   **Tablas de SALIDA (INSERT, UPDATE, DELETE, SELECT INTO):**
+   - Si hace INSERT/UPDATE/DELETE, lista las tablas modificadas
+   - Si retorna un SELECT, lista las columnas del resultado
+   - Si crea tablas temporales (#temp, @table), inclúyelas
+
+4. **DESCRIPCIÓN FUNCIONAL DETALLADA:**
+   - ¿Qué hace el código en lenguaje natural? (3-5 líneas)
+   - ¿Cuál es el flujo principal?
+   - ¿Qué transformaciones aplica?
+   - ¿Qué validaciones o filtros tiene?
+   - ¿Para qué se usa típicamente?
+
+5. **CONTEXTO ACADÉMICO (SI APLICA):**
+   - Si usa tablas Banner (SATURN, GENERAL, etc.), menciona el módulo
+   - Si es para SNIES, indica qué reporte genera
+   - Si procesa datos académicos (estudiantes, programas, etc.), explica el contexto
+
+6. **DEPENDENCIAS Y CONSIDERACIONES:**
+   - ¿Llama a otros SPs, Functions o Views?
+   - ¿Usa triggers o jobs?
+   - ¿Tiene consideraciones de performance?
+   - ¿Requiere permisos especiales?
+
+**PATRONES RECONOCIDOS:**
+
+**Banner (ERP Educativo):**
+- SATURN_*: Módulo académico (estudiantes, cursos, registro)
+- GENERAL_*: Datos generales (personas, direcciones)
+- PAYROLL_*: Nómina
+- FINANCE_*: Finanzas
+- Prefijos: SA, GB, FI en funciones públicas
+
+**SNIES (Colombia - Educación Superior):**
+- Reportes: Inscritos, Admitidos, Matriculados, Graduados
+- Campos comunes: SNIES_CODIGO, PROGRAMA_CODIGO, PERIODO
+
+**SQL Server:**
+- SP con "SP_" o "USP_": Stored Procedure personalizado
+- FN con "FN_" o "UDF_": User-Defined Function
+- Tablas con "#": Temporales locales
+- Tablas con "##": Temporales globales
+- Tablas con "@": Variables tipo tabla
 
 **RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
 {
-  "nombre": "Nombre del objeto detectado (sin CREATE, ALTER, etc.)",
-  "tipo": "Tipo correcto del objeto",
-  "parametros": "@Param1 INT, @Param2 VARCHAR(50)",
-  "tablasEntrada": ["TBL_TABLA1", "TBL_TABLA2"],
-  "tablasSalida": ["COLUMNA1", "COLUMNA2", "COLUMNA3"],
-  "descripcion": "Descripción funcional detallada de lo que hace el código",
-  "dependencias": "Menciona si depende de otros objetos o tiene consideraciones especiales",
-  "confianza": 0.92
+  "nombre": "Nombre limpio del objeto (sin CREATE/ALTER)",
+  "tipo": "Stored Procedure | Function | View | Query | Table-Valued Function | Scalar Function | Trigger",
+  "esquema": "dbo | SATURN | GENERAL | otro (si es visible)",
+  "descripcion": "Descripción funcional detallada de qué hace y para qué sirve (3-5 líneas). Incluye contexto académico si aplica.",
+  "parametros": [
+    {
+      "nombre": "@Parametro1",
+      "tipo": "INT | VARCHAR(50) | DATE | etc.",
+      "obligatorio": true,
+      "valorDefecto": null,
+      "descripcion": "Para qué sirve este parámetro"
+    }
+  ],
+  "tablasEntrada": [
+    {
+      "nombre": "SATURN.SFRSTCR",
+      "esquema": "SATURN",
+      "tipo": "Table",
+      "uso": "FROM - Registro de estudiantes en cursos",
+      "contexto": "Banner - Módulo académico"
+    }
+  ],
+  "tablasSalida": [
+    {
+      "nombre": "ResultSet | TablaNombre",
+      "operacion": "SELECT | INSERT | UPDATE",
+      "columnas": ["COL1", "COL2"] o "Retorna dataset completo"
+    }
+  ],
+  "logicaNegocio": "Descripción paso a paso del flujo completo del código",
+  "contextoAcademico": "Si aplica: menciona si es para Banner, SNIES, qué módulo, qué proceso académico",
+  "dependencias": ["SP_OtroProc", "FN_Calcular", "Job_Carga"] o "Ninguna",
+  "complejidad": "Baja | Media | Alta",
+  "notasPerformance": "Consideraciones de rendimiento y optimización",
+  "confianza": 0.XX,
+  "advertencias": ["Posibles problemas detectados o mejoras sugeridas"]
 }
 
-**IMPORTANTE:**
-- Si el código no tiene parámetros, usa: "Sin parámetros"
-- Si no retorna columnas, usa: []
-- Sé específico en la descripción
-- La confianza debe ser entre 0.0 y 1.0
-`;
+**EJEMPLO COMPLETO:**
+{
+  "nombre": "SP_ObtenerPensumEstudiante",
+  "tipo": "Stored Procedure",
+  "esquema": "dbo",
+  "descripcion": "Procedimiento que retorna el pensum completo de un estudiante específico en un periodo académico. Consolida información de múltiples tablas Banner (SATURN) incluyendo materias cursadas, aprobadas, pendientes y equivalencias. Calcula créditos totales, aprobados y porcentaje de avance. Usado por el módulo de seguimiento académico para generar reportes de progreso estudiantil.",
+  "parametros": [
+    {
+      "nombre": "@CodigoEstudiante",
+      "tipo": "VARCHAR(20)",
+      "obligatorio": true,
+      "valorDefecto": null,
+      "descripcion": "Identificador único del estudiante en Banner (PIDM o código institucional)"
+    },
+    {
+      "nombre": "@PeriodoAcademico",
+      "tipo": "VARCHAR(10)",
+      "obligatorio": false,
+      "valorDefecto": "NULL",
+      "descripcion": "Código del periodo académico (formato: YYYYT donde T=1,2,3). Si es NULL, retorna todos los periodos."
+    }
+  ],
+  "tablasEntrada": [
+    {
+      "nombre": "SATURN.SFRSTCR",
+      "esquema": "SATURN",
+      "tipo": "Table",
+      "uso": "FROM - Consulta principal de registro de cursos",
+      "contexto": "Banner - Student Registration: contiene inscripciones de estudiantes"
+    },
+    {
+      "nombre": "SATURN.SSBSECT",
+      "esquema": "SATURN",
+      "tipo": "Table",
+      "uso": "JOIN - Información de secciones",
+      "contexto": "Banner - Section Schedule: datos de horarios y secciones"
+    },
+    {
+      "nombre": "SATURN.SCBCRSE",
+      "esquema": "SATURN",
+      "tipo": "Table",
+      "uso": "JOIN - Catálogo de cursos",
+      "contexto": "Banner - Course Catalog: información de materias"
+    }
+  ],
+  "tablasSalida": [
+    {
+      "nombre": "ResultSet",
+      "operacion": "SELECT",
+      "columnas": ["PeriodoCodigo", "MateriacodeCodigo", "MateriaNombre", "Creditos", "Calificacion", "Estado", "CreditosAprobados", "PorcentajeAvance"]
+    }
+  ],
+  "logicaNegocio": "1) Valida existencia del estudiante mediante JOIN con SPRIDEN. 2) Consulta inscripciones en SFRSTCR filtrando por @CodigoEstudiante y opcionalmente por @PeriodoAcademico. 3) Cruza con catálogo de cursos SCBCRSE para obtener nombres y créditos. 4) Calcula créditos aprobados usando CASE sobre calificaciones finales. 5) Identifica prerrequisitos pendientes mediante subconsulta a SCRPRLE. 6) Ordena resultado por periodo DESC y materia ASC. 7) Retorna dataset completo con información del pensum.",
+  "contextoAcademico": "Sistema Banner (Ellucian) - Módulo Student Records (SATURN). Usado para seguimiento de avance académico estudiantil. Genera datos para reportes de progreso curricular y detección de estudiantes próximos a graduación.",
+  "dependencias": ["FN_CalcularPromedioAcumulado", "VW_EstudiantesActivos"],
+  "complejidad": "Media",
+  "notasPerformance": "Usa índices en SFRSTCR.PIDM y SFRSTCR.TERM_CODE para optimizar búsqueda. Evita cursores. Si el estudiante tiene más de 20 periodos, considerar paginación. Performance óptimo para consultas individuales (<500ms). Para procesamiento masivo, considerar tabla temporal.",
+  "confianza": 0.92,
+  "advertencias": [
+    "No valida permisos FERPA para acceso a datos estudiantiles",
+    "Calificación 'I' (Incompleto) no está manejada en el cálculo de aprobados",
+    "No incluye cursos de transferencia externa"
+  ]
+}
+
+Analiza el código SQL y responde SOLO con el JSON.`;
 
   try {
-    console.log('🔍 Analizando código SQL con IA...');
+    console.log('🔍 Analizando código SQL con IA (v2.0 mejorado)...');
     
-    // Llamar a Gemini con el prompt
     const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
-    
-    // Extraer JSON de la respuesta
     const resultado = extraerJSON(respuestaTexto);
     
     if (!resultado) {
@@ -96,236 +224,99 @@ ${codigoSQL}
 
 /**
  * =====================================================
- * FUNCIÓN 2: DETECTAR PARÁMETROS DE UN CÓDIGO SQL
+ * FUNCIÓN 2: MEJORAR DESCRIPCIONES DE CAMPOS (MEJORADO v2.0)
  * =====================================================
- * Extrae solo los parámetros de entrada de un código SQL
- * usando RegEx + IA para mejor precisión
- * 
- * @param {string} codigoSQL - Código SQL completo
- * @returns {Promise<Array>} - Array de objetos con parámetros
- */
-export const detectarParametros = async (codigoSQL) => {
-  const prompt = `
-Eres un experto en SQL Server. Analiza este código SQL y extrae ÚNICAMENTE los parámetros de entrada.
-
-**CÓDIGO SQL:**
-\`\`\`sql
-${codigoSQL}
-\`\`\`
-
-**INSTRUCCIONES:**
-1. Identifica TODOS los parámetros de entrada (empiezan con @)
-2. Para cada parámetro extrae: nombre, tipo de dato, valor por defecto (si tiene)
-3. NO incluyas variables locales, solo parámetros de entrada
-
-**RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
-{
-  "parametros": [
-    {
-      "nombre": "@ProgramaID",
-      "tipo": "INT",
-      "valorDefecto": null,
-      "descripcion": "ID del programa académico"
-    },
-    {
-      "nombre": "@PeriodoID",
-      "tipo": "VARCHAR(10)",
-      "valorDefecto": null,
-      "descripcion": "Código del período académico"
-    }
-  ],
-  "confianza": 0.95
-}
-
-**IMPORTANTE:**
-- Si no hay parámetros, retorna array vacío: []
-- Incluye el @ en el nombre
-- Sé específico en las descripciones
-`;
-
-  try {
-    console.log('🔍 Detectando parámetros con IA...');
-    
-    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
-    const resultado = extraerJSON(respuestaTexto);
-    
-    if (!resultado || !resultado.parametros) {
-      return [];
-    }
-    
-    console.log(`✅ Detectados ${resultado.parametros.length} parámetros`);
-    return resultado.parametros;
-    
-  } catch (error) {
-    console.error('❌ Error detectando parámetros:', error);
-    return [];
-  }
-};
-
-/**
- * =====================================================
- * FUNCIÓN 3: EXTRAER TABLAS INVOLUCRADAS
- * =====================================================
- * Identifica todas las tablas que se usan en el código SQL
- * (tanto de entrada como de salida)
- * 
- * @param {string} codigoSQL - Código SQL completo
- * @returns {Promise<Object>} - Objeto con tablas de entrada y salida
- */
-export const extraerTablas = async (codigoSQL) => {
-  const prompt = `
-Eres un experto en SQL Server. Analiza este código SQL e identifica TODAS las tablas involucradas.
-
-**CÓDIGO SQL:**
-\`\`\`sql
-${codigoSQL}
-\`\`\`
-
-**INSTRUCCIONES:**
-1. Identifica tablas de ENTRADA (FROM, JOIN, WHERE)
-2. Identifica tablas de SALIDA (INSERT INTO, UPDATE, SELECT INTO)
-3. NO incluyas variables temporales (empiezan con #)
-4. Incluye views si se usan
-
-**RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
-{
-  "tablasEntrada": ["TBL_PROGRAMAS", "TBL_PERIODOS", "VW_ESTUDIANTES"],
-  "tablasSalida": ["TBL_PENSUM"],
-  "confianza": 0.90
-}
-
-**IMPORTANTE:**
-- Si no hay tablas, usa arrays vacíos: []
-- Usa los nombres completos de las tablas
-- NO incluyas alias
-`;
-
-  try {
-    console.log('🔍 Extrayendo tablas con IA...');
-    
-    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
-    const resultado = extraerJSON(respuestaTexto);
-    
-    if (!resultado) {
-      return { tablasEntrada: [], tablasSalida: [] };
-    }
-    
-    console.log(`✅ Detectadas ${resultado.tablasEntrada?.length || 0} tablas de entrada`);
-    return resultado;
-    
-  } catch (error) {
-    console.error('❌ Error extrayendo tablas:', error);
-    return { tablasEntrada: [], tablasSalida: [] };
-  }
-};
-
-/**
- * =====================================================
- * FUNCIÓN 4: GENERAR DESCRIPCIÓN DE CÓDIGO SQL
- * =====================================================
- * Genera una descripción en lenguaje natural de lo que
- * hace un código SQL
- * 
- * @param {string} codigoSQL - Código SQL completo
- * @returns {Promise<string>} - Descripción generada
- */
-export const generarDescripcionSQL = async (codigoSQL) => {
-  const prompt = `
-Eres un experto en SQL Server. Lee este código SQL y genera una descripción clara y concisa en lenguaje natural de lo que hace.
-
-**CÓDIGO SQL:**
-\`\`\`sql
-${codigoSQL}
-\`\`\`
-
-**INSTRUCCIONES:**
-1. Explica el PROPÓSITO principal del código
-2. Describe QUÉ DATOS procesa o retorna
-3. Menciona CONDICIONES o FILTROS importantes
-4. Usa lenguaje simple y directo
-5. NO copies el código, EXPLICA lo que hace
-
-**RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
-{
-  "descripcion": "Este stored procedure obtiene el pensum completo de un programa académico específico para un período dado. Filtra por estado activo y retorna las materias con sus créditos y prerequisitos.",
-  "confianza": 0.88
-}
-
-**IMPORTANTE:**
-- Máximo 3-4 oraciones
-- Evita jerga técnica innecesaria
-- Enfócate en el objetivo funcional
-`;
-
-  try {
-    console.log('🔍 Generando descripción con IA...');
-    
-    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
-    const resultado = extraerJSON(respuestaTexto);
-    
-    if (!resultado || !resultado.descripcion) {
-      throw new Error('No se pudo generar descripción');
-    }
-    
-    console.log('✅ Descripción generada correctamente');
-    return resultado.descripcion;
-    
-  } catch (error) {
-    console.error('❌ Error generando descripción:', error);
-    return 'Descripción no disponible (error al generar con IA)';
-  }
-};
-
-/**
- * =====================================================
- * FUNCIÓN 5: MEJORAR DESCRIPCIONES DE CAMPOS
- * =====================================================
- * Mejora las descripciones de campos SQL detectados
- * con contexto más detallado usando IA
- * 
- * @param {Array} campos - Array de campos con descripciones básicas
- * @param {string} contexto - Contexto adicional (nombre de tabla, propósito)
- * @returns {Promise<Array>} - Campos con descripciones mejoradas
  */
 export const mejorarDescripcionesCampos = async (campos, contexto = '') => {
-  const prompt = `
-Eres un experto en bases de datos y documentación. Mejora las descripciones de estos campos SQL haciéndolas más claras y contextuales.
+  const prompt = `Eres un experto en bases de datos académicas (Banner, SNIES) y documentación técnica.
 
-**CONTEXTO:** ${contexto || 'Campos de una tabla de base de datos'}
+**CONTEXTO:** ${contexto || 'Campos de una tabla/vista de base de datos para reportes Power BI'}
 
 **CAMPOS A MEJORAR:**
-${campos.map((c, i) => `${i + 1}. ${c.nombre} (${c.tipo}) - ${c.descripcion || 'Sin descripción'}`).join('\n')}
+${campos.map((c, i) => `${i + 1}. ${c.nombre} (${c.tipo}) - Descripción actual: "${c.descripcion || 'Sin descripción'}"`).join('\n')}
 
-**INSTRUCCIONES:**
-1. Para cada campo, genera una descripción CLARA y CONTEXTUAL
-2. Menciona el PROPÓSITO del campo
-3. Si es un código, explica su FORMATO (ej: YYYY-MM, NNNNNN, etc.)
-4. Si es una llave, menciona qué identifica
-5. Máximo 1-2 oraciones por campo
+**INSTRUCCIONES PARA DESCRIPCIONES MEJORADAS:**
+
+1. **CONTEXTO ACADÉMICO BANNER:**
+   - Si es código (COD_*, CODIGO_*): Explica qué identifica (estudiante, programa, periodo)
+   - Si es nombre (NOM_*, NOMBRE_*): Especifica qué entidad describe
+   - Si es fecha (FECHA_*, FEC_*): Indica qué evento registra
+   - Si es email: Diferencia personal vs institucional
+   - Si es documento: Menciona tipos válidos (CC, TI, CE, Pasaporte)
+
+2. **PATRONES COMUNES BANNER:**
+   - **COD_PERIODO_ACADEMICO**: Periodo académico (semestre/trimestre)
+   - **PIDM**: Person Identification Master (ID único Banner)
+   - **SPRIDEN_ID**: ID institucional del estudiante
+   - **TERM_CODE**: Código de término académico (YYYYT)
+   - **CRN**: Course Reference Number
+   - **STPERKOT_***: Tablas de check-out
+   - **SATURN_***: Módulo estudiantes
+   - **GENERAL_***: Datos generales
+
+3. **PATRONES SNIES (COLOMBIA):**
+   - **SNIES_CODIGO**: Código SNIES del programa
+   - **NIVEL_FORMACION**: Pregrado, Especialización, Maestría, Doctorado
+   - **MODALIDAD**: Presencial, Distancia, Virtual
+   - **JORNADA**: Diurna, Nocturna, Mixta
+
+4. **DETALLES TÉCNICOS:**
+   - Menciona si es llave primaria [PK] o foránea [FK]
+   - Indica formato esperado: "Formato: YYYY-MM-DD" o "Formato: XXX-####"
+   - Menciona valores típicos o rangos
+   - Indica si es único, obligatorio, etc.
+
+5. **EJEMPLOS CONCRETOS:**
+   - Incluye ejemplos reales entre paréntesis
+   - "Código del periodo académico. Formato: YYYYP (ej: 20251 = Año 2025, Periodo 1). [PK]"
+   - "Correo electrónico personal del estudiante. Formato: usuario@dominio.com. Usado para notificaciones externas."
+
+6. **LONGITUD Y ESTILO:**
+   - Entre 20-50 palabras (conciso pero completo)
+   - Evita redundancia con el nombre del campo
+   - Usa lenguaje técnico pero claro
+   - NO copies la descripción actual, MEJÓRALA
 
 **RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
 {
   "campos": [
     {
-      "nombre": "COD_PERIODO_ACADEMICO",
-      "descripcionMejorada": "Código único que identifica el período académico (semestre/año). Formato: YYYY-S (ejemplo: 2025-1 para primer semestre de 2025)"
-    },
-    {
-      "nombre": "COD_TIPO_DOCUMENTO",
-      "descripcionMejorada": "Tipo de documento de identificación (CC, TI, CE, etc.). Clave foránea referenciada de la tabla de tipos de documento"
+      "nombre": "CAMPO1",
+      "descripcionMejorada": "Nueva descripción detallada con formato, contexto y ejemplos",
+      "mejoras": "Breve nota de qué se agregó o cambió respecto a la descripción original"
     }
   ],
-  "confianza": 0.92
+  "confianza": 0.XX,
+  "observaciones": "Notas generales sobre los campos analizados (opcional)"
 }
 
-**IMPORTANTE:**
-- Mantén la precisión técnica
-- Sé conciso pero informativo
-- NO inventes información que no esté implícita
-`;
+**EJEMPLO COMPLETO:**
+{
+  "campos": [
+    {
+      "nombre": "COD_PERIODO_ACADEMICO",
+      "descripcionMejorada": "Código único que identifica el periodo académico (semestre/trimestre) en formato YYYYP, donde YYYY es el año y P el periodo (1=Primer semestre, 2=Segundo semestre, 3=Intersemestre). Ejemplo: 20251 = Primer semestre 2025. [PK]. Usado en todas las consultas temporales para filtrar información académica.",
+      "mejoras": "Se agregó: formato específico, ejemplos concretos, indicación de llave primaria, y caso de uso común"
+    },
+    {
+      "nombre": "EMAIL_PERSONAL",
+      "descripcionMejorada": "Dirección de correo electrónico personal del estudiante, distinto al correo institucional. Formato: usuario@dominio.com. Longitud máxima 512 caracteres. Usado para comunicaciones externas, recuperación de contraseña y notificaciones cuando no está disponible en campus. Puede ser NULL si el estudiante no lo ha registrado.",
+      "mejoras": "Se especificó: diferencia con email institucional, formato, longitud, casos de uso y posibilidad de NULL"
+    },
+    {
+      "nombre": "NUM_DOC_PERSONA",
+      "descripcionMejorada": "Número de documento de identificación oficial de la persona. Tipos válidos según COD_TIPO_DOCUMENTO: CC (Cédula Ciudadanía), TI (Tarjeta Identidad), CE (Cédula Extranjería), PA (Pasaporte), RC (Registro Civil). Longitud máxima 200 caracteres. Único por persona y tipo de documento. Usado como identificador alternativo al PIDM de Banner.",
+      "mejoras": "Se agregó: tipos de documentos válidos con siglas, restricción de unicidad, longitud, y relación con PIDM Banner"
+    }
+  ],
+  "confianza": 0.95,
+  "observaciones": "Los campos analizados son típicos de sistemas académicos Banner. Se identificaron patrones estándar de nomenclatura."
+}
+
+Analiza los ${campos.length} campos y responde SOLO con el JSON.`;
 
   try {
-    console.log('🔍 Mejorando descripciones de campos con IA...');
+    console.log('🔍 Mejorando descripciones de campos con IA (v2.0 mejorado)...');
     
     const respuestaTexto = await generarContenidoTexto(prompt, 'pro'); // Usar PRO para mejor calidad
     const resultado = extraerJSON(respuestaTexto);
@@ -355,15 +346,93 @@ ${campos.map((c, i) => `${i + 1}. ${c.nombre} (${c.tipo}) - ${c.descripcion || '
 
 /**
  * =====================================================
- * FUNCIÓN 6: VALIDAR RESPUESTA DE ANÁLISIS SQL
+ * FUNCIONES AUXILIARES (SE MANTIENEN IGUAL)
  * =====================================================
- * Valida que una respuesta de análisis SQL tenga
- * nivel de confianza aceptable
- * 
- * @param {Object} respuesta - Respuesta del análisis
- * @param {number} confianzaMinima - Umbral mínimo (default: 0.7)
- * @returns {Object} - { valida: boolean, mensaje: string }
  */
+
+export const detectarParametros = async (codigoSQL) => {
+  const prompt = `Extrae SOLO los parámetros de entrada de este código SQL:
+
+\`\`\`sql
+${codigoSQL}
+\`\`\`
+
+Identifica TODOS los parámetros (empiezan con @), su tipo y valor por defecto.
+
+Responde SOLO con JSON:
+{
+  "parametros": [
+    {
+      "nombre": "@Param1",
+      "tipo": "INT",
+      "valorDefecto": null,
+      "descripcion": "Breve descripción"
+    }
+  ],
+  "confianza": 0.95
+}`;
+
+  try {
+    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
+    const resultado = extraerJSON(respuestaTexto);
+    return resultado?.parametros || [];
+  } catch (error) {
+    console.error('❌ Error detectando parámetros:', error);
+    return [];
+  }
+};
+
+export const extraerTablas = async (codigoSQL) => {
+  const prompt = `Identifica TODAS las tablas involucradas en este código SQL:
+
+\`\`\`sql
+${codigoSQL}
+\`\`\`
+
+Separa tablas de entrada (FROM, JOIN) y salida (INSERT, UPDATE, SELECT INTO).
+
+Responde SOLO con JSON:
+{
+  "tablasEntrada": ["TABLA1", "TABLA2"],
+  "tablasSalida": ["TABLA3"],
+  "confianza": 0.90
+}`;
+
+  try {
+    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
+    const resultado = extraerJSON(respuestaTexto);
+    return resultado || { tablasEntrada: [], tablasSalida: [] };
+  } catch (error) {
+    console.error('❌ Error extrayendo tablas:', error);
+    return { tablasEntrada: [], tablasSalida: [] };
+  }
+};
+
+export const generarDescripcionSQL = async (codigoSQL) => {
+  const prompt = `Genera una descripción en lenguaje natural de qué hace este código SQL:
+
+\`\`\`sql
+${codigoSQL}
+\`\`\`
+
+Máximo 3-4 oraciones. Enfócate en el objetivo funcional.
+
+Responde SOLO con JSON:
+{
+  "descripcion": "Descripción clara y concisa",
+  "confianza": 0.88
+}`;
+
+  try {
+    const respuestaTexto = await generarContenidoTexto(prompt, 'flash');
+    const resultado = extraerJSON(respuestaTexto);
+    return resultado?.descripcion || 'Descripción no disponible';
+  } catch (error) {
+    console.error('❌ Error generando descripción:', error);
+    return 'Descripción no disponible (error al generar con IA)';
+  }
+};
+
 export const validarRespuestaSQL = (respuesta, confianzaMinima = 0.7) => {
   if (!respuesta) {
     return { 
@@ -385,33 +454,20 @@ export const validarRespuestaSQL = (respuesta, confianzaMinima = 0.7) => {
   };
 };
 
-/**
- * =====================================================
- * FUNCIÓN 7: ANALIZAR CÓDIGO SQL RÁPIDO (SIN DETALLES)
- * =====================================================
- * Versión simplificada que solo detecta nombre, tipo y descripción
- * útil para análisis rápidos
- * 
- * @param {string} codigoSQL - Código SQL completo
- * @returns {Promise<Object>} - Información básica del código
- */
 export const analizarCodigoSQLRapido = async (codigoSQL) => {
-  const prompt = `
-Analiza este código SQL y extrae SOLO: nombre, tipo y descripción breve.
+  const prompt = `Analiza este código SQL brevemente:
 
-**CÓDIGO SQL:**
 \`\`\`sql
 ${codigoSQL}
 \`\`\`
 
-**RESPONDE ÚNICAMENTE CON JSON:**
+Responde SOLO con JSON:
 {
   "nombre": "Nombre del objeto",
   "tipo": "Tipo (SP, Function, View, Query)",
   "descripcion": "Descripción en 1-2 oraciones",
   "confianza": 0.90
-}
-`;
+}`;
 
   try {
     const respuestaTexto = await generarContenidoTexto(prompt, 'flash');

@@ -9,7 +9,9 @@ import InfoAdicional from './components/InfoAdicional/InfoAdicional';
 import VistaResumen from './components/Outputs/VistaResumen';
 import DiccionarioDatos from './components/Outputs/DiccionarioDatos';
 import ManualTecnico from './components/Outputs/ManualTecnico';
-// ===== IMPORTS: IA ===== ✅ NUEVO
+// ===== IMPORTS: NUEVO MÓDULO 8 ===== ✅
+import GuiaReconstruccion from './components/GuiaReconstruccion/GuiaReconstruccion';
+// ===== IMPORTS: IA ===== ✅
 import Modal from './components/Modal/Modal';
 import Configuracion from './components/Configuracion/Configuracion';
 import { tieneApiKey } from './utils/ai/geminiClient';
@@ -21,13 +23,13 @@ import './styles/global.css';
  * 
  * Desarrollado por: Ricardo Aral
  * Email: jho.araque84@gmail.com
- * Versión: 3.0 (CON IA INTEGRADA) ✅
- * Fecha: 2025-01-09
+ * Versión: 4.0 (CON GUÍA DE RECONSTRUCCIÓN) ✅
+ * Fecha: 2026-01-01
  * 
- * NOVEDADES v3.0:
- * - Integración completa con Google Gemini API
- * - Modal de configuración de IA accesible desde header
- * - Indicador de estado de IA en el header
+ * NOVEDADES v4.0:
+ * - Módulo 8: Guía de Reconstrucción Power BI con IA
+ * - Genera paso a paso detallado para recrear el reporte
+ * - Incluye capturas de referencia y código SQL
  */
 
 function App() {
@@ -42,7 +44,7 @@ function App() {
   const [outputActivo, setOutputActivo] = useState('resumen');
 
   // ============================================
-  // ESTADO: Modal de Configuración IA ✅ NUEVO
+  // ESTADO: Modal de Configuración IA ✅
   // ============================================
   const [modalConfiguracionAbierto, setModalConfiguracionAbierto] = useState(false);
 
@@ -79,6 +81,9 @@ function App() {
     volumetria: '',
     notasTecnicas: '',
     historialCambios: '',
+    
+    // ===== SECCIÓN 8: GUÍA DE RECONSTRUCCIÓN ===== ✅ NUEVO
+    guiaReconstruccion: null, // Objeto generado por IA
     
     // ===== METADATOS =====
     documentadoPor: 'Ricardo Aral',
@@ -204,6 +209,14 @@ function App() {
       
       case 7:
         return renderOutputs();
+      
+      case 8: // ✅ NUEVO
+        return (
+          <GuiaReconstruccion 
+            reportData={reportData}
+            setReportData={setReportData}
+          />
+        );
       
       default:
         return (
@@ -359,7 +372,7 @@ function App() {
               {calcularProgreso()}% completado
             </div>
             
-            {/* ✅ NUEVO: Botón de Configuración IA */}
+            {/* ✅ Botón de Configuración IA */}
             <button 
               className="btn-config-ia"
               onClick={() => setModalConfiguracionAbierto(true)}
@@ -432,12 +445,22 @@ function App() {
           </div>
 
           <div 
-            className={`step ${seccionActual === 7 ? 'active' : ''}`}
+            className={`step ${seccionActual === 7 ? 'active' : ''} ${seccionActual > 7 ? 'completed' : ''}`}
             onClick={() => handleCambiarSeccion(7)}
             title="Exportaciones y Resumen Final"
           >
             <span className="step-number">7</span>
             <span className="step-label">Outputs</span>
+          </div>
+
+          {/* ✅ NUEVO: Sección 8 */}
+          <div 
+            className={`step ${seccionActual === 8 ? 'active' : ''}`}
+            onClick={() => handleCambiarSeccion(8)}
+            title="Guía para Reconstruir en Power BI"
+          >
+            <span className="step-number">8</span>
+            <span className="step-label">Guía PBI</span>
           </div>
           
         </div>
@@ -459,7 +482,7 @@ function App() {
           </button>
         )}
         
-        {seccionActual < 7 && (
+        {seccionActual < 8 && (
           <button 
             className="btn-nav btn-next"
             onClick={() => handleCambiarSeccion(seccionActual + 1)}
@@ -469,7 +492,7 @@ function App() {
         )}
       </div>
 
-      {/* ========== MODAL DE CONFIGURACIÓN IA ========== ✅ NUEVO */}
+      {/* ========== MODAL DE CONFIGURACIÓN IA ========== */}
       <Modal
         isOpen={modalConfiguracionAbierto}
         onClose={() => setModalConfiguracionAbierto(false)}
@@ -487,7 +510,7 @@ function App() {
         <p className="footer-links">
           <a href="mailto:jho.araque84@gmail.com">📧 Contacto</a>
           <span className="separator">•</span>
-          <span>🗂️ Versión 3.0 (CON IA INTEGRADA)</span>
+          <span>🗂️ Versión 4.0 (CON GUÍA RECONSTRUCCIÓN)</span>
         </p>
       </footer>
 
