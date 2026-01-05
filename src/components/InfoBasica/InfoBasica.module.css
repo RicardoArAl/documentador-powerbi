@@ -1269,3 +1269,119 @@
 .imagenSeleccionada.pegada {
   animation: pasteSuccess 0.3s ease-out;
 }
+/* =====================================================
+   ⭐ NUEVOS ESTILOS PARA CONTEXTO DE IA (v3.2)
+   Agregar al final del archivo InfoBasica.module.css
+   ===================================================== */
+
+/* ============ CONTEXTO IA (PASO 1 MODAL) ============ */
+.contextoIA {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contextoExplicacion {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #fbbf24;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.contextoIcono {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.contextoTexto {
+  color: #78350f;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.contextoTexto strong {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.contextoForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+/* ============ CONTEXTO QUE SE ENVIARÁ ============ */
+.contextoEnviar {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #60a5fa;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  animation: slideInLeft 0.5s ease;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.contextoEnviarIcono {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.contextoEnviarTexto {
+  color: #1e40af;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.contextoEnviarTexto strong {
+  color: #1e3a8a;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.contextoEnviarTexto div {
+  color: #1e40af;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+/* ============ RESPONSIVE PARA CONTEXTO ============ */
+@media (max-width: 768px) {
+  .contextoForm {
+    grid-template-columns: 1fr;
+  }
+  
+  .contextoExplicacion {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .contextoEnviar {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}

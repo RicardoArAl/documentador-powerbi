@@ -1,15 +1,17 @@
 /**
  * =====================================================
- * COMPONENTE: INFORMACIÓN BÁSICA v3.1
+ * COMPONENTE: INFORMACIÓN BÁSICA v3.2
  * Sección 1 - Análisis Completo: Dashboard + Jerarquía
  * PARTE 1/2: Imports, Estados y Funciones
  * 
- * CARACTERÍSTICAS v3.1:
+ * CARACTERÍSTICAS v3.2:
+ * - ⭐ NUEVO: Campos de nombre y código ANTES del análisis
+ * - ⭐ NUEVO: IA usa contexto para generar descripción específica
  * - Análisis IA integrado (Dashboard + Jerarquía en un solo paso)
  * - Extracción automática de código/nombre desde nombre de archivo
  * - Prioriza datos manuales sobre detección IA
  * - Progreso visual en tiempo real
- * - ⭐ NUEVO: Soporte Ctrl+V para pegar capturas
+ * - Soporte Ctrl+V para pegar capturas
  * =====================================================
  */
 
@@ -54,6 +56,10 @@ const InfoBasica = ({ datos, onGuardar }) => {
   const [errorIA, setErrorIA] = useState(null);
   const [progresoAnalisis, setProgresoAnalisis] = useState('');
   
+  // ⭐ NUEVO: Campos temporales para el modal (Paso 1)
+  const [nombreTemporal, setNombreTemporal] = useState('');
+  const [codigoTemporal, setCodigoTemporal] = useState('');
+  
   const inputImagenRef = useRef(null);
 
   const categorias = [
@@ -83,7 +89,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
     }
   }, [jerarquia]);
 
-  // ⭐ NUEVO: EFECTO PARA DETECTAR CTRL+V
+  // ⭐ EFECTO PARA DETECTAR CTRL+V
   useEffect(() => {
     if (!modalIAVisible) return;
 
@@ -159,6 +165,10 @@ const InfoBasica = ({ datos, onGuardar }) => {
 
   // ===== FUNCIONES MODAL IA =====
   const abrirModalIA = () => {
+    // ⭐ NUEVO: Pre-cargar con valores del formulario si existen
+    setNombreTemporal(formData.nombreReporte || '');
+    setCodigoTemporal(formData.codigoReporte || '');
+    
     setModalIAVisible(true);
     setImagenSeleccionada(null);
     setResultadoIA(null);
@@ -173,29 +183,27 @@ const InfoBasica = ({ datos, onGuardar }) => {
     setErrorIA(null);
     setAnalizandoIA(false);
     setProgresoAnalisis('');
+    setNombreTemporal('');
+    setCodigoTemporal('');
   };
 
   /**
-   * ⭐ NUEVA FUNCIÓN: Extrae código y nombre del reporte desde el nombre del archivo
-   * Ejemplo: "BNR-AC-AA-15 Alumnos matriculados.png" → { codigo: "BNR-AC-AA-15", nombre: "Alumnos matriculados" }
+   * Extrae código y nombre del reporte desde el nombre del archivo
    */
   const extraerInfoDesdeNombreArchivo = (nombreArchivo) => {
-    // Remover extensión
     const nombreSinExtension = nombreArchivo.replace(/\.(png|jpg|jpeg|gif|webp|bmp)$/i, '');
     
-    // Patrón para códigos tipo BNR-XX-YY-## o similares (flexible)
     const patronCodigo = /^([A-Z]{2,4}-[A-Z]{2}-[A-Z]{2}-\d{2,3})/i;
     const matchCodigo = nombreSinExtension.match(patronCodigo);
     
     if (matchCodigo) {
       const codigo = matchCodigo[1].toUpperCase();
-      // El resto del nombre (después del código)
       const nombre = nombreSinExtension
         .substring(codigo.length)
         .trim()
-        .replace(/^[-_\s]+/, '') // Remover guiones/espacios al inicio
-        .replace(/[-_]+/g, ' ') // Reemplazar guiones/underscores con espacios
-        .replace(/\s+/g, ' '); // Normalizar espacios múltiples
+        .replace(/^[-_\s]+/, '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s+/g, ' ');
       
       return {
         codigo: codigo,
@@ -207,8 +215,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Maneja la selección de imagen desde el input
-   * Extrae código y nombre del archivo automáticamente
+   * ⭐ MEJORADO: Maneja la selección de imagen y actualiza campos temporales
    */
   const manejarSeleccionImagen = (evento) => {
     const archivo = evento.target.files[0];
@@ -222,29 +229,19 @@ const InfoBasica = ({ datos, onGuardar }) => {
         return;
       }
       
-      // ⭐ NUEVO: Extraer info del nombre del archivo
+      // Extraer info del nombre del archivo
       const infoArchivo = extraerInfoDesdeNombreArchivo(archivo.name);
       
       if (infoArchivo.codigo || infoArchivo.nombre) {
         console.log('✅ Información extraída del archivo:', infoArchivo);
         
-        // Pre-llenar campos si están vacíos
-        const nuevosData = { ...formData };
-        let cambios = false;
-        
-        if (infoArchivo.codigo && !formData.codigoReporte) {
-          nuevosData.codigoReporte = infoArchivo.codigo;
-          cambios = true;
+        // ⭐ NUEVO: Actualizar campos temporales si están vacíos
+        if (infoArchivo.codigo && !nombreTemporal && !codigoTemporal) {
+          setCodigoTemporal(infoArchivo.codigo);
         }
         
-        if (infoArchivo.nombre && !formData.nombreReporte) {
-          nuevosData.nombreReporte = infoArchivo.nombre;
-          cambios = true;
-        }
-        
-        if (cambios) {
-          setFormData(nuevosData);
-          onGuardar(nuevosData);
+        if (infoArchivo.nombre && !nombreTemporal) {
+          setNombreTemporal(infoArchivo.nombre);
         }
       }
       
@@ -254,37 +251,24 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Maneja el drag and drop de imágenes
-   * También extrae info del nombre del archivo
+   * ⭐ MEJORADO: Maneja el drag and drop
    */
   const manejarDrop = (e) => {
     e.preventDefault();
     const archivo = e.dataTransfer.files[0];
     
     if (archivo && archivo.type.startsWith('image/')) {
-      // ⭐ NUEVO: Extraer info del nombre del archivo
       const infoArchivo = extraerInfoDesdeNombreArchivo(archivo.name);
       
       if (infoArchivo.codigo || infoArchivo.nombre) {
-        console.log('✅ Información extraída del archivo (drag&drop):', infoArchivo);
+        console.log('✅ Información extraída (drag&drop):', infoArchivo);
         
-        // Pre-llenar campos si están vacíos
-        const nuevosData = { ...formData };
-        let cambios = false;
-        
-        if (infoArchivo.codigo && !formData.codigoReporte) {
-          nuevosData.codigoReporte = infoArchivo.codigo;
-          cambios = true;
+        if (infoArchivo.codigo && !nombreTemporal && !codigoTemporal) {
+          setCodigoTemporal(infoArchivo.codigo);
         }
         
-        if (infoArchivo.nombre && !formData.nombreReporte) {
-          nuevosData.nombreReporte = infoArchivo.nombre;
-          cambios = true;
-        }
-        
-        if (cambios) {
-          setFormData(nuevosData);
-          onGuardar(nuevosData);
+        if (infoArchivo.nombre && !nombreTemporal) {
+          setNombreTemporal(infoArchivo.nombre);
         }
       }
       
@@ -300,8 +284,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Análisis Completo (Dashboard + Jerarquía)
-   * PRIORIZA datos ya ingresados manualmente sobre detección IA
+   * ⭐ MEJORADO: Análisis Completo con CONTEXTO del usuario
    */
   const ejecutarAnalisisIA = async () => {
     if (!imagenSeleccionada) {
@@ -314,23 +297,41 @@ const InfoBasica = ({ datos, onGuardar }) => {
     setResultadoIA(null);
 
     try {
-      // PASO 1: Analizar dashboard con IA Vision
+      // ⭐ Determinar código y nombre con prioridad:
+      // 1. Campos temporales del modal
+      // 2. Campos del formulario
+      // 3. Lo que detecte la IA
+      const codigoContexto = codigoTemporal || formData.codigoReporte;
+      const nombreContexto = nombreTemporal || formData.nombreReporte;
+
+      console.log('📋 Contexto para IA:', { 
+        codigo: codigoContexto, 
+        nombre: nombreContexto 
+      });
+
+      // PASO 1: Analizar dashboard con CONTEXTO
       setProgresoAnalisis('📊 Analizando dashboard con IA...');
-      const resultadoDashboard = await analizarDashboardCompleto(imagenSeleccionada);
+      const resultadoDashboard = await analizarDashboardCompleto(
+        imagenSeleccionada,
+        {
+          codigoReporte: codigoContexto,
+          nombreReporte: nombreContexto
+        }
+      );
 
       const validacion = validarRespuestaIA(resultadoDashboard, 0.6);
       if (!validacion.valida) {
         console.warn('⚠️ Advertencia:', validacion.mensaje);
       }
 
-      // ⭐ IMPORTANTE: Priorizar código/nombre del formulario sobre lo detectado
-      const codigoFinal = formData.codigoReporte || resultadoDashboard.codigoReporte;
-      const nombreFinal = formData.nombreReporte || resultadoDashboard.nombreReporte;
+      // Usar contexto proporcionado sobre detección
+      const codigoFinal = codigoContexto || resultadoDashboard.codigoReporte;
+      const nombreFinal = nombreContexto || resultadoDashboard.nombreReporte;
 
-      console.log('🔍 Código a usar:', codigoFinal, '(formulario:', formData.codigoReporte, ', detectado:', resultadoDashboard.codigoReporte, ')');
-      console.log('🔍 Nombre a usar:', nombreFinal, '(formulario:', formData.nombreReporte, ', detectado:', resultadoDashboard.nombreReporte, ')');
+      console.log('🔍 Código final:', codigoFinal);
+      console.log('🔍 Nombre final:', nombreFinal);
 
-      // PASO 2: Detectar jerarquía usando el código PRIORITARIO
+      // PASO 2: Detectar jerarquía
       let resultadoJerarquia = null;
       if (codigoFinal) {
         setProgresoAnalisis('🌳 Detectando jerarquía organizacional...');
@@ -345,11 +346,9 @@ const InfoBasica = ({ datos, onGuardar }) => {
         } catch (error) {
           console.warn('⚠️ No se pudo detectar jerarquía:', error.message);
         }
-      } else {
-        console.warn('⚠️ No hay código de reporte para detectar jerarquía');
       }
 
-      // Combinar resultados PRIORIZANDO formulario
+      // Combinar resultados
       setResultadoIA({
         nombreReporte: nombreFinal,
         codigoReporte: codigoFinal,
@@ -375,7 +374,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Aplicar resultados incluyendo jerarquía
+   * Aplicar resultados incluyendo jerarquía
    */
   const aplicarResultadosIA = () => {
     if (!resultadoIA) return;
@@ -410,7 +409,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
       cambiosAplicados = true;
     }
 
-    // ⭐ NUEVO: Aplicar jerarquía si fue detectada y no existe
+    // Aplicar jerarquía si fue detectada
     if (resultadoIA.jerarquia && !jerarquia.area) {
       const breadcrumb = resultadoIA.jerarquia.area && resultadoIA.jerarquia.subarea
         ? `${resultadoIA.jerarquia.sistema} > ${resultadoIA.jerarquia.area} > ${resultadoIA.jerarquia.subarea}`
@@ -434,7 +433,6 @@ const InfoBasica = ({ datos, onGuardar }) => {
       onGuardar(nuevosData);
       cerrarModalIA();
       
-      // Mensaje personalizado según lo detectado
       const mensajes = [];
       if (resultadoIA.nombreReporte) mensajes.push('nombre');
       if (resultadoIA.codigoReporte) mensajes.push('código');
@@ -458,8 +456,20 @@ const InfoBasica = ({ datos, onGuardar }) => {
   ].filter(val => val !== '').length;
 
   // ===== CONTINÚA EN PARTE 2 (RENDER) =====
-  // El return con el JSX completo está en el artifact "infobasica-parte2"
-  // ===== RENDER (sustituir el return null de la Parte 1 con esto) =====
+  /**
+ * =====================================================
+ * COMPONENTE: INFORMACIÓN BÁSICA v3.2
+ * PARTE 2/2: JSX RENDER - Modal con campos de contexto
+ * 
+ * ⭐ NUEVO EN v3.2:
+ * - Paso 1 del modal incluye campos de nombre y código
+ * - Estos campos se envían a la IA como contexto
+ * - La IA genera descripciones más específicas
+ * =====================================================
+ */
+
+// REEMPLAZA EL "return null" DE LA PARTE 1 CON ESTE CÓDIGO COMPLETO:
+
 return (
   <div className={styles.container}>
     
@@ -470,7 +480,7 @@ return (
       </p>
     </div>
 
-    {/* Sección IA con descripción actualizada */}
+    {/* Sección IA */}
     <div className={styles.seccionIA}>
       <div className={styles.seccionIAContent}>
         <div className={styles.seccionIATexto}>
@@ -562,7 +572,7 @@ return (
 
       </div>
 
-      {/* ===== JERARQUÍA (SIN BOTÓN DETECTAR) ===== */}
+      {/* JERARQUÍA */}
       <div className={styles.seccionJerarquia}>
         <div className={styles.jerarquiaHeader}>
           <h3 className={styles.jerarquiaTitulo}>📂 Jerarquía Organizacional</h3>
@@ -586,7 +596,6 @@ return (
           </div>
         )}
 
-        {/* Solo botón limpiar si hay jerarquía */}
         {jerarquia.area && (
           <div className={styles.jerarquiaDeteccion}>
             <button
@@ -742,7 +751,9 @@ return (
       </span>
     </div>
 
-    {/* ===== MODAL IA MEJORADO (ARREGLADO) ===== */}
+    {/* ========================================
+         ⭐ MODAL MEJORADO CON PASO 1 DE CONTEXTO
+         ======================================== */}
     {modalIAVisible && (
       <div className={styles.modalOverlay} onClick={cerrarModalIA}>
         <div className={styles.modalContenido} onClick={(e) => e.stopPropagation()}>
@@ -756,9 +767,56 @@ return (
 
           <div className={styles.modalBody}>
             
+            {/* ⭐ NUEVO PASO 1: INFORMACIÓN BÁSICA (OPCIONAL) */}
             <div className={styles.pasoModal}>
               <h4 className={styles.pasoTitulo}>
                 <span className={styles.pasoNumero}>1</span>
+                Información Básica (Opcional)
+              </h4>
+              
+              <div className={styles.contextoIA}>
+                <div className={styles.contextoExplicacion}>
+                  <span className={styles.contextoIcono}>💡</span>
+                  <p className={styles.contextoTexto}>
+                    Si conoces el código y nombre del reporte, ingrésalos aquí. 
+                    <strong> La IA los usará para generar una descripción más específica y precisa.</strong>
+                  </p>
+                </div>
+                
+                <div className={styles.contextoForm}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Código del Reporte
+                    </label>
+                    <input
+                      type="text"
+                      value={codigoTemporal}
+                      onChange={(e) => setCodigoTemporal(e.target.value)}
+                      placeholder="Ej: BNR-AC-AA-15"
+                      className={styles.input}
+                    />
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Nombre del Reporte
+                    </label>
+                    <input
+                      type="text"
+                      value={nombreTemporal}
+                      onChange={(e) => setNombreTemporal(e.target.value)}
+                      placeholder="Ej: Alumnos matriculados"
+                      className={styles.input}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 2: SELECCIONAR IMAGEN */}
+            <div className={styles.pasoModal}>
+              <h4 className={styles.pasoTitulo}>
+                <span className={styles.pasoNumero}>2</span>
                 Selecciona una captura del dashboard completo
               </h4>
               
@@ -777,7 +835,6 @@ return (
                     />
                     <p className={styles.imagenNombre}>{imagenSeleccionada.name}</p>
                     
-                    {/* ⭐ NUEVO: Mostrar si se extrajo info del nombre */}
                     {(() => {
                       const info = extraerInfoDesdeNombreArchivo(imagenSeleccionada.name);
                       if (info.codigo || info.nombre) {
@@ -805,7 +862,6 @@ return (
                       o haz clic para seleccionar
                     </p>
                     
-                    {/* ⭐ NUEVO: Hint de Ctrl+V */}
                     <div className={styles.pasteHint}>
                       <span className={styles.pasteIcon}>⌨️</span>
                       <span>
@@ -829,12 +885,25 @@ return (
               />
             </div>
 
+            {/* PASO 3: ANALIZAR */}
             {imagenSeleccionada && !resultadoIA && (
               <div className={styles.pasoModal}>
                 <h4 className={styles.pasoTitulo}>
-                  <span className={styles.pasoNumero}>2</span>
+                  <span className={styles.pasoNumero}>3</span>
                   Analizar con IA
                 </h4>
+                
+                {/* Mostrar contexto que se enviará */}
+                {(codigoTemporal || nombreTemporal) && (
+                  <div className={styles.contextoEnviar}>
+                    <span className={styles.contextoEnviarIcono}>📤</span>
+                    <div className={styles.contextoEnviarTexto}>
+                      <strong>Se enviará este contexto a la IA:</strong>
+                      {codigoTemporal && <div>• Código: {codigoTemporal}</div>}
+                      {nombreTemporal && <div>• Nombre: {nombreTemporal}</div>}
+                    </div>
+                  </div>
+                )}
                 
                 {progresoAnalisis && (
                   <div className={styles.progresoAnalisis}>
@@ -859,10 +928,11 @@ return (
               </div>
             )}
 
+            {/* PASO 4: RESULTADOS */}
             {resultadoIA && (
               <div className={styles.pasoModal}>
                 <h4 className={styles.pasoTitulo}>
-                  <span className={styles.pasoNumero}>3</span>
+                  <span className={styles.pasoNumero}>4</span>
                   Resultados del análisis
                 </h4>
                 
@@ -943,4 +1013,8 @@ return (
 
   </div>
 );
-}
+// El código termina aquí y se conecta con el export de la Parte 1
+  return null; // El JSX completo está en la Parte 2
+};
+
+export default InfoBasica;

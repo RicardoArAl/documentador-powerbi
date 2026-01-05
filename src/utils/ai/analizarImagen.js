@@ -1,15 +1,11 @@
 /**
  * =====================================================
- * ANALIZAR IMAGEN - UTILIDADES GEMINI VISION (v2.0)
+ * ANALIZAR IMAGEN - UTILIDADES GEMINI VISION (v3.0)
  * 
- * Funciones para analizar diferentes tipos de imágenes
- * usando Gemini Vision API con PROMPTS MEJORADOS
- * 
- * MEJORAS v2.0:
- * - Detección múltiple de campos SQL concatenados
- * - Análisis exhaustivo de visualizaciones
- * - Dashboard completo con inventario detallado
- * - Matching inteligente con campos disponibles
+ * ⭐ NUEVO EN v3.0:
+ * - analizarDashboardCompleto ahora recibe CONTEXTO
+ * - Prompt mejorado que usa código y nombre para generar
+ *   descripciones ESPECÍFICAS en lugar de genéricas
  * =====================================================
  */
 
@@ -17,14 +13,11 @@ import { obtenerClienteGemini } from './geminiClient';
 
 /**
  * Convierte un archivo de imagen a base64
- * @param {File} archivo - Archivo de imagen
- * @returns {Promise<string>} - String base64 de la imagen
  */
 export const convertirImagenABase64 = (archivo) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      // Extraer solo la parte base64 (sin el prefijo data:image/...)
       const base64 = reader.result.split(',')[1];
       resolve(base64);
     };
@@ -35,20 +28,12 @@ export const convertirImagenABase64 = (archivo) => {
 
 /**
  * Función genérica para analizar una imagen con Gemini Vision
- * @param {File} imagen - Archivo de imagen
- * @param {string} prompt - Prompt para Gemini
- * @param {string} mimeType - Tipo MIME de la imagen (default: image/jpeg)
- * @returns {Promise<Object>} - Respuesta parseada de Gemini
  */
 export const analizarImagenConIA = async (imagen, prompt, mimeType = 'image/jpeg') => {
   try {
-    // 1. Obtener cliente de Gemini
     const model = await obtenerClienteGemini();
-    
-    // 2. Convertir imagen a base64
     const base64Image = await convertirImagenABase64(imagen);
     
-    // 3. Crear el objeto de imagen para Gemini
     const imagePart = {
       inlineData: {
         data: base64Image,
@@ -56,18 +41,14 @@ export const analizarImagenConIA = async (imagen, prompt, mimeType = 'image/jpeg
       }
     };
     
-    // 4. Hacer la petición a Gemini Vision
     const result = await model.generateContent([prompt, imagePart]);
     const response = await result.response;
     const text = response.text();
     
-    // 5. Intentar parsear como JSON
     try {
-      // Limpiar markdown si viene con ```json ... ```
       const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
       return JSON.parse(cleanText);
     } catch (parseError) {
-      // Si no es JSON válido, retornar el texto plano
       console.warn('La respuesta no es JSON válido, retornando texto:', text);
       return { textoRespuesta: text };
     }
@@ -80,21 +61,73 @@ export const analizarImagenConIA = async (imagen, prompt, mimeType = 'image/jpeg
 
 /**
  * =====================================================
- * CASO 1: ANALIZAR DASHBOARD COMPLETO (MEJORADO v2.0)
+ * ⭐ MEJORADO: ANALIZAR DASHBOARD CON CONTEXTO v3.0
  * =====================================================
- * Analiza una imagen de un dashboard/reporte completo
- * con inventario DETALLADO de filtros y visuales
+ * 
+ * @param {File} imagen - Captura del dashboard
+ * @param {Object} contexto - Contexto opcional del usuario
+ * @param {string} contexto.codigoReporte - Código proporcionado por el usuario
+ * @param {string} contexto.nombreReporte - Nombre proporcionado por el usuario
  */
-export const analizarDashboardCompleto = async (imagen) => {
+export const analizarDashboardCompleto = async (imagen, contexto = {}) => {
+  const { codigoReporte, nombreReporte } = contexto;
+  
+  // ⭐ Construir sección de contexto si está disponible
+  let seccionContexto = '';
+  
+  if (codigoReporte || nombreReporte) {
+    seccionContexto = `
+**🎯 CONTEXTO PROPORCIONADO POR EL USUARIO:**
+${codigoReporte ? `- CÓDIGO DEL REPORTE: "${codigoReporte}"` : ''}
+${nombreReporte ? `- NOMBRE DEL REPORTE: "${nombreReporte}"` : ''}
+
+**⚠️ INSTRUCCIÓN CRÍTICA PARA EL OBJETIVO:**
+Basándote en el código y/o nombre proporcionado, genera un OBJETIVO ESPECÍFICO Y DETALLADO que explique:
+1. QUÉ INFORMACIÓN EXACTA muestra este reporte
+2. PARA QUÉ SE UTILIZA específicamente
+3. QUÉ DECISIONES o ANÁLISIS permite realizar
+
+**❌ NO USAR FRASES GENÉRICAS como:**
+- "Proporciona información sobre..."
+- "Permite visualizar datos de..."
+- "Muestra información relacionada con..."
+
+**✅ USA EL CONTEXTO DEL NOMBRE para ser ESPECÍFICO:**
+
+Ejemplos de objetivos según el nombre:
+
+📊 Si el nombre es "Alumnos matriculados":
+❌ MAL: "Proporciona información sobre estudiantes"
+✅ BIEN: "Muestra el listado completo de estudiantes matriculados en el periodo actual, con sus datos personales (documento, nombre, email), información del programa académico al que pertenecen y créditos inscritos. Permite a los coordinadores académicos consultar el detalle de su población estudiantil activa, verificar matrículas y realizar seguimiento individual."
+
+📊 Si el nombre es "Pensum por plan de estudio":
+❌ MAL: "Muestra información de pensums"
+✅ BIEN: "Presenta la estructura curricular detallada de cada plan de estudio vigente, incluyendo todas las asignaturas organizadas por semestre, créditos académicos, requisitos y correquisitos. Permite a directores de programa y asesores académicos consultar la malla curricular oficial, planear horarios y asesorar estudiantes sobre la secuencia de materias."
+
+📊 Si el nombre es "Recaudos por concepto":
+❌ MAL: "Proporciona datos financieros"
+✅ BIEN: "Consolida los ingresos recibidos clasificados por concepto de pago (matrícula, derechos de grado, certificados, etc.) en un periodo determinado. Permite al área financiera analizar el comportamiento de recaudo por tipo de ingreso, identificar conceptos con mayor volumen y realizar proyecciones presupuestales."
+
+📊 Si el nombre es "SNIES - Matriculados primer curso":
+❌ MAL: "Muestra estudiantes nuevos"
+✅ BIEN: "Genera el reporte oficial de estudiantes de primer ingreso (primer curso) según los criterios y definiciones del SNIES (Sistema Nacional de Información de la Educación Superior). Permite al área de planeación preparar los archivos de cargue obligatorios ante el Ministerio de Educación Nacional para el reporte de nuevos matriculados en el periodo."
+
+**SI NO HAY CONTEXTO, analiza la captura cuidadosamente e infiere el objetivo más específico posible.**
+`;
+  }
+  
   const prompt = `Analiza esta captura completa de un reporte/dashboard de Power BI y extrae TODA la información visible.
+
+${seccionContexto}
 
 **ANÁLISIS REQUERIDO (MUY DETALLADO):**
 
 1. **INFORMACIÓN BÁSICA DEL REPORTE:**
    - **Título principal:** Busca el título más prominente (generalmente arriba)
-   - **Código o identificador:** Busca patrones tipo "BNR-XX-YY-##" o códigos alfanuméricos
+   ${!nombreReporte ? '- Si el usuario NO proporcionó nombre, extrae el título exacto visible en la imagen' : '- Usa el nombre proporcionado por el usuario como prioritario'}
+   ${!codigoReporte ? '- **Código o identificador:** Busca patrones tipo "BNR-XX-YY-##" o códigos alfanuméricos' : '- Usa el código proporcionado por el usuario'}
    - **Categoría:** Infiere del contenido (Académico, Financiero, Administrativo, SNIES, etc.)
-   - **Objetivo aparente:** Deduce para qué sirve basándote en visuales y filtros
+   - **Objetivo aparente:** ${nombreReporte || codigoReporte ? 'GENERA UN OBJETIVO ESPECÍFICO Y DETALLADO basándote en el contexto proporcionado' : 'Deduce para qué sirve basándote en visuales y filtros'}
 
 2. **INVENTARIO COMPLETO DE FILTROS:**
    - Cuenta TODOS los slicers/filtros visibles
@@ -150,11 +183,11 @@ export const analizarDashboardCompleto = async (imagen) => {
 
 **RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
 {
-  "nombreReporte": "Nombre descriptivo completo",
-  "codigoReporte": "BNR-XX-YY-## (si es visible)",
+  "nombreReporte": "${nombreReporte || 'Nombre descriptivo completo extraído de la imagen'}",
+  "codigoReporte": "${codigoReporte || 'BNR-XX-YY-## (si es visible en la imagen)'}",
   "categoria": "Categoría principal",
   "subcategoria": "Subcategoría (si aplica)",
-  "objetivo": "Descripción detallada del propósito y uso del reporte (3-5 líneas)",
+  "objetivo": "Descripción ESPECÍFICA y DETALLADA del propósito (${nombreReporte || codigoReporte ? 'USA EL CONTEXTO PROPORCIONADO' : '3-5 líneas basadas en análisis visual'})",
   "cantidadFiltros": 7,
   "filtrosDetectados": [
     {"nombre": "...", "tipo": "..."}
@@ -174,7 +207,8 @@ export const analizarDashboardCompleto = async (imagen) => {
 **IMPORTANTE:**
 - Sé exhaustivo en el conteo de filtros y visuales
 - Si no ves algo claramente, no lo inventes
-- La confianza debe reflejar qué tan claro se ve todo`;
+- La confianza debe reflejar qué tan claro se ve todo
+${nombreReporte || codigoReporte ? '- **PRIORIDAD MÁXIMA:** Usa el contexto del usuario para generar un objetivo ESPECÍFICO, no genérico' : ''}`;
 
   return await analizarImagenConIA(imagen, prompt);
 };
@@ -183,8 +217,6 @@ export const analizarDashboardCompleto = async (imagen) => {
  * =====================================================
  * CASO 2: ANALIZAR FILTRO DE POWER BI (MEJORADO v2.0)
  * =====================================================
- * Analiza una imagen de un filtro/slicer con detección
- * MÚLTIPLE de campos SQL concatenados
  */
 export const analizarFiltroDeImagen = async (imagen, camposDisponibles = []) => {
   const prompt = `Analiza esta imagen de un FILTRO o SLICER de Power BI y extrae su información.
@@ -200,9 +232,6 @@ ${camposDisponibles.length > 0
    - Un filtro puede usar VARIOS campos SQL concatenados
    - Busca en la imagen etiquetas, encabezados o valores que coincidan con MÚLTIPLES campos
    - Ejemplo: Si ves "Periodo - Sede - Programa", mapea a: PERIODO + SEDE + PROGRAMA
-   - Si ves años (2025, 2024), mapea a: COD_PERIODO_ACADEMICO
-   - Si ves nombres de sedes (Bogotá, Pereira), mapea a: NOMBRE_SEDE
-   - Si ves códigos (001, 002), busca campos tipo CODIGO_* o COD_*
 
 2. **PRIORIDAD DE MATCHING:**
    a) Coincidencia EXACTA del nombre visible con campo SQL
@@ -215,18 +244,6 @@ ${camposDisponibles.length > 0
    - Si detectas MÚLTIPLES campos: "COD_PERIODO_ACADEMICO + NOMBRE_SEDE + CODIGO_PROGRAMA"
    - Usa el operador " + " (con espacios) para concatenar
 
-4. **ANÁLISIS DE VALORES:**
-   - Examina los valores mostrados en el filtro (ej: lista de opciones)
-   - Valores numéricos 4 dígitos (2025, 2024) → probablemente PERIODO/AÑO
-   - Valores texto largos (Bogotá D.C., Pereira) → probablemente NOMBRES
-   - Valores alfanuméricos cortos (BG-01, PE-02) → probablemente CÓDIGOS
-   - Fechas (DD/MM/YYYY) → campos tipo DATE
-
-5. **CONFIANZA DEL MATCH:**
-   - Alta (0.85-1.0): Coincidencia exacta o múltiples evidencias
-   - Media (0.70-0.84): Coincidencia por tipo de dato o semántica
-   - Baja (<0.70): Suposición basada en contexto
-
 **RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
 {
   "nombre": "Nombre descriptivo del filtro",
@@ -236,17 +253,6 @@ ${camposDisponibles.length > 0
   "descripcion": "Descripción funcional del filtro y su propósito",
   "confianza": 0.XX,
   "razonamiento": "Explica por qué elegiste estos campos SQL específicos"
-}
-
-**EJEMPLO CON MÚLTIPLES CAMPOS:**
-{
-  "nombre": "Periodo - Sede",
-  "tipoControl": "Slicer - Lista jerárquica",
-  "valores": "2025 - Bogotá, 2025 - Pereira, 2024 - Bogotá",
-  "campoSQL": "COD_PERIODO_ACADEMICO + NOMBRE_SEDE",
-  "descripcion": "Filtro combinado que permite seleccionar periodo académico y sede institucional simultáneamente",
-  "confianza": 0.90,
-  "razonamiento": "Detecté valores de años (2025, 2024) que mapean a COD_PERIODO_ACADEMICO y nombres de ciudades que mapean a NOMBRE_SEDE. La presentación jerárquica confirma concatenación."
 }`;
 
   return await analizarImagenConIA(imagen, prompt);
@@ -256,8 +262,6 @@ ${camposDisponibles.length > 0
  * =====================================================
  * CASO 3: ANALIZAR VISUALIZACIÓN (MEJORADO v2.0)
  * =====================================================
- * Analiza una imagen de un visual con extracción
- * EXHAUSTIVA de campos y matching inteligente
  */
 export const analizarVisualizacionDeImagen = async (imagen, camposDisponibles = []) => {
   const prompt = `Analiza esta imagen de una visualización de Power BI y extrae su información técnica completa.
@@ -271,94 +275,34 @@ ${camposDisponibles.length > 0
 
 1. **DETECCIÓN DE TIPO DE VISUAL:**
    Identifica el tipo exacto entre:
-   - Tabla (filas y columnas planas)
-   - Matriz (con jerarquías/agrupaciones)
-   - Gráfico de Barras (horizontal)
-   - Gráfico de Columnas (vertical)
-   - Gráfico de Líneas (temporal)
-   - Gráfico de Áreas (con relleno)
-   - Gráfico Circular (pie chart)
-   - Gráfico de Anillo (donut)
-   - KPI Card (valor único destacado)
-   - Medidor (gauge/velocímetro)
-   - Cascada (waterfall)
-   - Embudo (funnel)
-   - Dispersión (scatter plot)
-   - Mapa (geográfico)
-   - Gráfico Combinado (múltiples tipos)
+   - Tabla, Matriz, Gráfico de Barras, Gráfico de Columnas, Gráfico de Líneas
+   - Gráfico de Áreas, Gráfico Circular, Gráfico de Anillo, KPI Card, Medidor
+   - Cascada, Embudo, Dispersión, Mapa, Gráfico Combinado
 
 2. **EXTRACCIÓN COMPLETA DE CAMPOS:**
    
    **A) Para TABLAS/MATRICES:**
    - Identifica CADA columna visible por su encabezado
-   - Diferencia entre:
-     * Campos directos (COD_ESTUDIANTE, NOMBRE_COMPLETO)
-     * Campos calculados/agregados (Total, Promedio, %)
-   - Busca matching con campos SQL disponibles por:
-     * Nombre exacto del encabezado
-     * Nombre similar/abreviado (Código → COD_*, Nombre → NOM_*)
-     * Tipo de dato visible (números enteros → INT, textos → VARCHAR, fechas → DATE)
-   
+   - Diferencia entre campos directos y calculados/agregados
+   - Busca matching con campos SQL disponibles
+
    **B) Para GRÁFICOS:**
-   - **Eje X:** ¿Qué campo se usa? (generalmente categorías/fechas)
-   - **Eje Y:** ¿Qué métricas se muestran? (generalmente valores numéricos)
-   - **Leyenda:** ¿Hay series múltiples? (campo adicional)
-   - **Tooltips:** ¿Qué campos aparecen al pasar el mouse? (visibles en la imagen)
-   
-   **C) Para KPIs/TARJETAS:**
-   - Campo principal mostrado
-   - Campos de comparación (si hay)
-   - Tendencia o variación (campo de diferencia)
+   - **Eje X:** ¿Qué campo se usa?
+   - **Eje Y:** ¿Qué métricas se muestran?
+   - **Leyenda:** ¿Hay series múltiples?
+   - **Tooltips:** ¿Qué campos aparecen?
 
 3. **IDENTIFICACIÓN DE MÉTRICAS CALCULADAS:**
-   
-   Detecta si hay agregaciones o cálculos:
-   - **COUNT:** "Total de...", "Cantidad de...", "N° de..."
-   - **SUM:** "Total...", "Suma de...", "Acumulado..."
-   - **AVG:** "Promedio...", "Media de..."
-   - **MIN/MAX:** "Mínimo", "Máximo"
-   - **% o Porcentaje:** Cálculos de proporción
-   - **Diferencias:** Campos tipo "Variación", "Cambio", "Diferencia"
-   
-   Formato: "SUM(CREDITOS_APROBADOS)" o "COUNT(DISTINCT CODIGO_ESTUDIANTE)"
+   - COUNT, SUM, AVG, MIN/MAX, %, Diferencias
+   - Formato: "SUM(CREDITOS_APROBADOS)" o "COUNT(DISTINCT CODIGO_ESTUDIANTE)"
 
-4. **ANÁLISIS DE AGRUPACIONES:**
-   - ¿Hay niveles jerárquicos? (Periodo > Sede > Programa)
-   - ¿Hay subtotales o totales generales?
-   - Esto indica campos de agrupación adicionales
-
-5. **MATCHING INTELIGENTE CON CAMPOS SQL:**
-   
-   **Estrategias de coincidencia:**
-   
-   a) **Coincidencia directa:**
-   - "Código Estudiante" → CODIGO_ESTUDIANTE o COD_ESTUDIANTE
-   - "Email" → EMAIL_PERSONAL o EMAIL_INSTITUCIONAL
-   
-   b) **Coincidencia por abreviación:**
-   - "Cód. Período" → COD_PERIODO_ACADEMICO
-   - "Num. Doc." → NUMERO_DOCUMENTO_PERSONA
-   
-   c) **Coincidencia por tipo:**
-   - Columna con números 10 dígitos → probablemente NUMERO_DOCUMENTO
-   - Columna con emails → probablemente EMAIL_*
-   - Columna con fechas → probablemente FECHA_*
-   
-   d) **Coincidencia semántica:**
-   - "Estudiante" → NOM_COMPLETO_PERSONA o NOMBRE_ESTUDIANTE
-   - "Programa" → NOMBRE_PROGRAMA o DESC_PROGRAMA
-   - "Sede" → NOMBRE_SEDE o DESC_SEDE
-
-6. **NIVEL DE CONFIANZA:**
-   - 0.90-1.0: Todos los campos identificados con alta certeza
-   - 0.75-0.89: Mayoría de campos identificados, algunos por deducción
-   - 0.60-0.74: Identificación parcial o campos ambiguos
-   - <0.60: Muchos campos no pudieron mapearse
+4. **MATCHING INTELIGENTE CON CAMPOS SQL:**
+   - Coincidencia directa, por abreviación, por tipo, semántica
 
 **RESPONDE ÚNICAMENTE CON JSON EN ESTE FORMATO:**
 {
   "titulo": "Título descriptivo del visual",
-  "tipo": "Tipo exacto del visual (de la lista)",
+  "tipo": "Tipo exacto del visual",
   "camposVisibles": ["CAMPO_SQL_1", "CAMPO_SQL_2", "CAMPO_SQL_3"],
   "metricasCalculadas": "Descripción de agregaciones: SUM(...), COUNT(...), AVG(...)",
   "descripcion": "Descripción funcional: qué muestra, para qué sirve, qué insights proporciona",
@@ -370,36 +314,7 @@ ${camposDisponibles.length > 0
     "columnas": ["Lista de columnas (para tablas)"],
     "agrupaciones": ["Campos de jerarquía/grupo (si aplica)"]
   },
-  "razonamiento": "Explica cómo identificaste cada campo y por qué los elegiste"
-}
-
-**EJEMPLO COMPLETO:**
-{
-  "titulo": "Listado Detallado de Estudiantes Matriculados",
-  "tipo": "Tabla",
-  "camposVisibles": [
-    "COD_PERIODO_ACADEMICO",
-    "NUMERO_DOCUMENTO_PERSONA",
-    "NOM_COMPLETO_PERSONA",
-    "EMAIL_PERSONAL",
-    "NOMBRE_PROGRAMA",
-    "CODIGO_ESTUDIANTE"
-  ],
-  "metricasCalculadas": "COUNT(DISTINCT CODIGO_ESTUDIANTE) como 'Total Estudiantes'",
-  "descripcion": "Tabla que presenta información detallada de estudiantes matriculados, incluyendo datos personales (documento, nombre, email), información académica (programa) y periodo. Permite filtrado y búsqueda. La columna 'Total' al final muestra un conteo agregado.",
-  "confianza": 0.92,
-  "detallesCampos": {
-    "columnas": [
-      "Periodo (COD_PERIODO_ACADEMICO)",
-      "Documento (NUMERO_DOCUMENTO_PERSONA)",
-      "Nombre Completo (NOM_COMPLETO_PERSONA)",
-      "Email (EMAIL_PERSONAL)",
-      "Programa (NOMBRE_PROGRAMA)",
-      "Código (CODIGO_ESTUDIANTE)",
-      "Total (métrica calculada)"
-    ]
-  },
-  "razonamiento": "Identifiqué 7 columnas en la tabla. Las primeras 6 mapean directamente a campos SQL por nombre y tipo de dato. La columna 'Total' es una métrica calculada (COUNT) que no existe en la fuente. Alta confianza por coincidencia exacta de nombres."
+  "razonamiento": "Explica cómo identificaste cada campo"
 }`;
 
   return await analizarImagenConIA(imagen, prompt);
@@ -409,7 +324,6 @@ ${camposDisponibles.length > 0
  * =====================================================
  * FUNCIÓN DE VALIDACIÓN
  * =====================================================
- * Valida que una respuesta de IA tenga nivel de confianza aceptable
  */
 export const validarRespuestaIA = (respuesta, confianzaMinima = 0.7) => {
   if (!respuesta) {
