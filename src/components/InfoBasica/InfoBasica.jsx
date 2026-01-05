@@ -1,12 +1,14 @@
 /**
  * =====================================================
- * COMPONENTE: INFORMACIÓN BÁSICA v3.2
+ * COMPONENTE: INFORMACIÓN BÁSICA v4.0
  * Sección 1 - Análisis Completo: Dashboard + Jerarquía
  * PARTE 1/2: Imports, Estados y Funciones
  * 
- * CARACTERÍSTICAS v3.2:
- * - ⭐ NUEVO: Campos de nombre y código ANTES del análisis
- * - ⭐ NUEVO: IA usa contexto para generar descripción específica
+ * CARACTERÍSTICAS v4.0:
+ * - ⭐ NUEVO: Pasa contexto SQL a la IA (campos disponibles)
+ * - ⭐ NUEVO: Prompt mejorado que infiere columnas no visibles
+ * - ⭐ NUEVO: Descripción más específica usando SQL
+ * - Campos de nombre y código ANTES del análisis
  * - Análisis IA integrado (Dashboard + Jerarquía en un solo paso)
  * - Extracción automática de código/nombre desde nombre de archivo
  * - Prioriza datos manuales sobre detección IA
@@ -56,9 +58,12 @@ const InfoBasica = ({ datos, onGuardar }) => {
   const [errorIA, setErrorIA] = useState(null);
   const [progresoAnalisis, setProgresoAnalisis] = useState('');
   
-  // ⭐ NUEVO: Campos temporales para el modal (Paso 1)
+  // Campos temporales para el modal (Paso 1)
   const [nombreTemporal, setNombreTemporal] = useState('');
   const [codigoTemporal, setCodigoTemporal] = useState('');
+  
+  // ⭐ NUEVO v4.0: Campos adicionales opcionales para mejorar IA
+  const [columnasAdicionales, setColumnasAdicionales] = useState('');
   
   const inputImagenRef = useRef(null);
 
@@ -89,7 +94,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
     }
   }, [jerarquia]);
 
-  // ⭐ EFECTO PARA DETECTAR CTRL+V
+  // Efecto para detectar Ctrl+V
   useEffect(() => {
     if (!modalIAVisible) return;
 
@@ -165,7 +170,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
 
   // ===== FUNCIONES MODAL IA =====
   const abrirModalIA = () => {
-    // ⭐ NUEVO: Pre-cargar con valores del formulario si existen
+    // Pre-cargar con valores del formulario si existen
     setNombreTemporal(formData.nombreReporte || '');
     setCodigoTemporal(formData.codigoReporte || '');
     
@@ -174,6 +179,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
     setResultadoIA(null);
     setErrorIA(null);
     setProgresoAnalisis('');
+    setColumnasAdicionales('');
   };
 
   const cerrarModalIA = () => {
@@ -185,6 +191,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
     setProgresoAnalisis('');
     setNombreTemporal('');
     setCodigoTemporal('');
+    setColumnasAdicionales('');
   };
 
   /**
@@ -215,7 +222,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Maneja la selección de imagen y actualiza campos temporales
+   * Maneja la selección de imagen y actualiza campos temporales
    */
   const manejarSeleccionImagen = (evento) => {
     const archivo = evento.target.files[0];
@@ -235,7 +242,6 @@ const InfoBasica = ({ datos, onGuardar }) => {
       if (infoArchivo.codigo || infoArchivo.nombre) {
         console.log('✅ Información extraída del archivo:', infoArchivo);
         
-        // ⭐ NUEVO: Actualizar campos temporales si están vacíos
         if (infoArchivo.codigo && !nombreTemporal && !codigoTemporal) {
           setCodigoTemporal(infoArchivo.codigo);
         }
@@ -251,7 +257,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Maneja el drag and drop
+   * Maneja el drag and drop
    */
   const manejarDrop = (e) => {
     e.preventDefault();
@@ -284,7 +290,7 @@ const InfoBasica = ({ datos, onGuardar }) => {
   };
 
   /**
-   * ⭐ MEJORADO: Análisis Completo con CONTEXTO del usuario
+   * ⭐ v4.0 MEJORADO: Análisis Completo con CONTEXTO COMPLETO (SQL + Usuario)
    */
   const ejecutarAnalisisIA = async () => {
     if (!imagenSeleccionada) {
@@ -297,25 +303,47 @@ const InfoBasica = ({ datos, onGuardar }) => {
     setResultadoIA(null);
 
     try {
-      // ⭐ Determinar código y nombre con prioridad:
-      // 1. Campos temporales del modal
-      // 2. Campos del formulario
-      // 3. Lo que detecte la IA
+      // Determinar código y nombre con prioridad
       const codigoContexto = codigoTemporal || formData.codigoReporte;
       const nombreContexto = nombreTemporal || formData.nombreReporte;
 
-      console.log('📋 Contexto para IA:', { 
+      // ⭐ NUEVO v4.0: Obtener campos SQL si están disponibles
+      let camposSQL = [];
+      if (datos?.camposDetectados && datos.camposDetectados.length > 0) {
+        camposSQL = datos.camposDetectados;
+        console.log(`📊 Enviando ${camposSQL.length} campos SQL a la IA`);
+      }
+      
+      // ⭐ NUEVO v4.0: Agregar columnas adicionales si el usuario las especificó
+      if (columnasAdicionales.trim()) {
+        const columnasExtra = columnasAdicionales
+          .split(',')
+          .map(col => col.trim())
+          .filter(col => col.length > 0)
+          .map(col => ({
+            nombre: col,
+            tipo: 'VARCHAR',
+            descripcion: 'Campo adicional mencionado por el usuario'
+          }));
+        
+        camposSQL = [...camposSQL, ...columnasExtra];
+        console.log(`➕ Se agregaron ${columnasExtra.length} columnas adicionales`);
+      }
+
+      console.log('📋 Contexto completo para IA:', { 
         codigo: codigoContexto, 
-        nombre: nombreContexto 
+        nombre: nombreContexto,
+        camposSQL: camposSQL.length
       });
 
-      // PASO 1: Analizar dashboard con CONTEXTO
-      setProgresoAnalisis('📊 Analizando dashboard con IA...');
+      // PASO 1: Analizar dashboard con CONTEXTO COMPLETO
+      setProgresoAnalisis('📊 Analizando dashboard con IA (usando contexto SQL)...');
       const resultadoDashboard = await analizarDashboardCompleto(
         imagenSeleccionada,
         {
           codigoReporte: codigoContexto,
-          nombreReporte: nombreContexto
+          nombreReporte: nombreContexto,
+          camposSQL: camposSQL // ⭐ NUEVO: Pasar campos SQL
         }
       );
 
@@ -358,7 +386,8 @@ const InfoBasica = ({ datos, onGuardar }) => {
         cantidadVisuales: resultadoDashboard.cantidadVisuales,
         tieneKPIs: resultadoDashboard.tieneKPIs,
         confianza: resultadoDashboard.confianza,
-        jerarquia: resultadoJerarquia
+        jerarquia: resultadoJerarquia,
+        observaciones: resultadoDashboard.observaciones // ⭐ Incluir observaciones
       });
 
       setProgresoAnalisis('✅ Análisis completado');
@@ -458,17 +487,18 @@ const InfoBasica = ({ datos, onGuardar }) => {
   // ===== CONTINÚA EN PARTE 2 (RENDER) =====
   /**
  * =====================================================
- * COMPONENTE: INFORMACIÓN BÁSICA v3.2
- * PARTE 2/2: JSX RENDER - Modal con campos de contexto
+ * COMPONENTE: INFORMACIÓN BÁSICA v4.0
+ * PARTE 2/2: JSX RENDER COMPLETO
  * 
- * ⭐ NUEVO EN v3.2:
- * - Paso 1 del modal incluye campos de nombre y código
- * - Estos campos se envían a la IA como contexto
- * - La IA genera descripciones más específicas
+ * ⭐ NUEVO EN v4.0:
+ * - Campo para especificar columnas adicionales opcionales
+ * - Mejora en la UI del modal para contexto SQL
+ * 
+ * ESTE CÓDIGO REEMPLAZA EL "return null;" DE LA PARTE 1
  * =====================================================
  */
 
-// REEMPLAZA EL "return null" DE LA PARTE 1 CON ESTE CÓDIGO COMPLETO:
+// REEMPLAZA EL "return null;" AL FINAL DE LA PARTE 1 CON ESTE CÓDIGO:
 
 return (
   <div className={styles.container}>
@@ -752,7 +782,7 @@ return (
     </div>
 
     {/* ========================================
-         ⭐ MODAL MEJORADO CON PASO 1 DE CONTEXTO
+         ⭐ MODAL MEJORADO V4.0 CON CONTEXTO SQL
          ======================================== */}
     {modalIAVisible && (
       <div className={styles.modalOverlay} onClick={cerrarModalIA}>
@@ -767,7 +797,7 @@ return (
 
           <div className={styles.modalBody}>
             
-            {/* ⭐ NUEVO PASO 1: INFORMACIÓN BÁSICA (OPCIONAL) */}
+            {/* ⭐ PASO 1: INFORMACIÓN BÁSICA (OPCIONAL) */}
             <div className={styles.pasoModal}>
               <h4 className={styles.pasoTitulo}>
                 <span className={styles.pasoNumero}>1</span>
@@ -805,10 +835,41 @@ return (
                       type="text"
                       value={nombreTemporal}
                       onChange={(e) => setNombreTemporal(e.target.value)}
-                      placeholder="Ej: Alumnos matriculados"
+                      placeholder="Ej: Alumnos matriculados con créditos y promedios"
                       className={styles.input}
                     />
                   </div>
+
+                  {/* ⭐ NUEVO v4.0: Campo para columnas adicionales */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Columnas Adicionales del Reporte (Opcional)
+                      <span className={styles.hint} style={{marginLeft: '8px', fontWeight: 'normal'}}>
+                        Lista TODAS las columnas/campos del reporte, incluso las que no se ven en la captura
+                      </span>
+                    </label>
+                    <textarea
+                      value={columnasAdicionales}
+                      onChange={(e) => setColumnasAdicionales(e.target.value)}
+                      placeholder="Ej: CODIGO_ESTUDIANTE, EMAIL_PERSONAL, EMAIL_INSTITUCIONAL, CREDITOS_ACUMULADOS, PROMEDIO_PONDERADO, NUM_MOVIL_PERSONA, ESTADO_FINANCIERO"
+                      className={styles.textarea}
+                      rows={3}
+                    />
+                    <span className={styles.hint}>
+                      💡 Usa los nombres técnicos de los campos separados por comas. La IA los interpretará para generar una descripción completa del reporte
+                    </span>
+                  </div>
+
+                  {/* Indicador de campos SQL disponibles */}
+                  {datos?.camposDetectados && datos.camposDetectados.length > 0 && (
+                    <div className={styles.sqlDisponible}>
+                      <span className={styles.sqlDisponibleIcono}>✅</span>
+                      <span className={styles.sqlDisponibleTexto}>
+                        Se detectaron <strong>{datos.camposDetectados.length} campos SQL</strong> del reporte. 
+                        La IA los usará automáticamente como contexto.
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -894,13 +955,17 @@ return (
                 </h4>
                 
                 {/* Mostrar contexto que se enviará */}
-                {(codigoTemporal || nombreTemporal) && (
+                {(codigoTemporal || nombreTemporal || columnasAdicionales || (datos?.camposDetectados && datos.camposDetectados.length > 0)) && (
                   <div className={styles.contextoEnviar}>
                     <span className={styles.contextoEnviarIcono}>📤</span>
                     <div className={styles.contextoEnviarTexto}>
-                      <strong>Se enviará este contexto a la IA:</strong>
+                      <strong>Contexto que se enviará a la IA:</strong>
                       {codigoTemporal && <div>• Código: {codigoTemporal}</div>}
                       {nombreTemporal && <div>• Nombre: {nombreTemporal}</div>}
+                      {columnasAdicionales && <div>• Columnas adicionales: {columnasAdicionales.split(',').length} especificadas</div>}
+                      {datos?.camposDetectados && datos.camposDetectados.length > 0 && (
+                        <div>• Campos SQL detectados: {datos.camposDetectados.length} campos</div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -919,10 +984,10 @@ return (
                   {analizandoIA ? (
                     <>
                       <span className={styles.spinner}></span>
-                      Analizando...
+                      Analizando con contexto completo...
                     </>
                   ) : (
-                    <>🔍 Analizar Dashboard y Jerarquía</>
+                    <>🔍 Analizar Dashboard con Contexto SQL</>
                   )}
                 </button>
               </div>
@@ -959,6 +1024,16 @@ return (
                     {resultadoIA.cantidadVisuales !== undefined && (
                       <div className={styles.resultadoItem}>
                         <strong>Visuales detectados:</strong> ~{resultadoIA.cantidadVisuales}
+                      </div>
+                    )}
+                    
+                    {/* ⭐ Mostrar observaciones si existen */}
+                    {resultadoIA.observaciones && (
+                      <div className={styles.resultadoItem} style={{marginTop: '12px'}}>
+                        <strong>📝 Observaciones:</strong>
+                        <div style={{marginTop: '6px', fontSize: '0.9em', lineHeight: '1.5'}}>
+                          {resultadoIA.observaciones}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1013,7 +1088,9 @@ return (
 
   </div>
 );
-// El código termina aquí y se conecta con el export de la Parte 1
+// ========================================
+// FIN DEL RENDER - NO AGREGUES MÁS CÓDIGO
+// ========================================
   return null; // El JSX completo está en la Parte 2
 };
 

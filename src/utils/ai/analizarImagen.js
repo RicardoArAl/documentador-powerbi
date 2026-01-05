@@ -1,11 +1,12 @@
 /**
  * =====================================================
- * ANALIZAR IMAGEN - UTILIDADES GEMINI VISION (v3.0)
+ * ANALIZAR IMAGEN - UTILIDADES GEMINI VISION (v4.0)
  * 
- * ⭐ NUEVO EN v3.0:
- * - analizarDashboardCompleto ahora recibe CONTEXTO
- * - Prompt mejorado que usa código y nombre para generar
- *   descripciones ESPECÍFICAS en lugar de genéricas
+ * ⭐ NUEVO EN v4.0:
+ * - Recibe CONTEXTO SQL (nombres de campos disponibles)
+ * - Prompt mejorado que infiere columnas no visibles
+ * - Genera descripciones más específicas usando SQL
+ * - Instrucciones para manejar tablas con scroll
  * =====================================================
  */
 
@@ -61,56 +62,76 @@ export const analizarImagenConIA = async (imagen, prompt, mimeType = 'image/jpeg
 
 /**
  * =====================================================
- * ⭐ MEJORADO: ANALIZAR DASHBOARD CON CONTEXTO v3.0
+ * ⭐ v4.0: ANALIZAR DASHBOARD CON CONTEXTO COMPLETO
  * =====================================================
  * 
  * @param {File} imagen - Captura del dashboard
- * @param {Object} contexto - Contexto opcional del usuario
- * @param {string} contexto.codigoReporte - Código proporcionado por el usuario
- * @param {string} contexto.nombreReporte - Nombre proporcionado por el usuario
+ * @param {Object} contexto - Contexto del usuario
+ * @param {string} contexto.codigoReporte - Código del reporte
+ * @param {string} contexto.nombreReporte - Nombre del reporte
+ * @param {Array} contexto.camposSQL - Array de campos SQL disponibles
  */
 export const analizarDashboardCompleto = async (imagen, contexto = {}) => {
-  const { codigoReporte, nombreReporte } = contexto;
+  const { codigoReporte, nombreReporte, camposSQL = [] } = contexto;
   
-  // ⭐ Construir sección de contexto si está disponible
-  let seccionContexto = '';
+  // ⭐ Construir sección de CONTEXTO SQL
+  let seccionSQL = '';
+  if (camposSQL && camposSQL.length > 0) {
+    const listaCampos = camposSQL
+      .slice(0, 50) // Limitar a 50 para no saturar el prompt
+      .map(c => `- ${c.nombre} (${c.tipo}${c.longitud ? `(${c.longitud})` : ''})${c.descripcion ? `: ${c.descripcion}` : ''}`)
+      .join('\n');
+    
+    seccionSQL = `
+**📊 CONTEXTO SQL DISPONIBLE:**
+Esta captura corresponde a un reporte que utiliza los siguientes campos de la base de datos:
+
+${listaCampos}
+${camposSQL.length > 50 ? `\n... y ${camposSQL.length - 50} campos más` : ''}
+
+**⚠️ INSTRUCCIÓN CRÍTICA PARA TABLAS CON SCROLL:**
+La tabla visible puede tener MÁS COLUMNAS a la derecha que no se ven en la captura.
+Basándote en los CAMPOS SQL DISPONIBLES y en el NOMBRE del reporte:
+
+1. **Identifica** qué columnas están visibles en la captura
+2. **Infiere** qué otras columnas probablemente existen pero no se ven
+3. **Menciona** en el objetivo las métricas/columnas clave del reporte completo
+
+Ejemplo:
+- Si el nombre dice "con créditos y promedios" pero NO ves esas columnas en la imagen,
+  **DEBES MENCIONAR** que el reporte incluye esas métricas aunque no estén visibles.
+- Si en el SQL hay campos como CREDITOS_ACUMULADOS, PROMEDIO_PONDERADO,
+  **MENCIÓNALOS** en el objetivo aunque no aparezcan en la captura.
+`;
+  }
   
+  // ⭐ Construir sección de contexto del usuario
+  let seccionContextoUsuario = '';
   if (codigoReporte || nombreReporte) {
-    seccionContexto = `
+    seccionContextoUsuario = `
 **🎯 CONTEXTO PROPORCIONADO POR EL USUARIO:**
 ${codigoReporte ? `- CÓDIGO DEL REPORTE: "${codigoReporte}"` : ''}
 ${nombreReporte ? `- NOMBRE DEL REPORTE: "${nombreReporte}"` : ''}
 
 **⚠️ INSTRUCCIÓN CRÍTICA PARA EL OBJETIVO:**
-Basándote en el código y/o nombre proporcionado, genera un OBJETIVO ESPECÍFICO Y DETALLADO que explique:
-1. QUÉ INFORMACIÓN EXACTA muestra este reporte
+Basándote en el código, nombre y campos SQL disponibles, genera un OBJETIVO ESPECÍFICO Y DETALLADO que explique:
+1. QUÉ INFORMACIÓN EXACTA muestra este reporte (incluyendo columnas no visibles)
 2. PARA QUÉ SE UTILIZA específicamente
 3. QUÉ DECISIONES o ANÁLISIS permite realizar
+4. QUÉ MÉTRICAS CLAVE contiene (aunque no estén todas visibles en la imagen)
 
 **❌ NO USAR FRASES GENÉRICAS como:**
 - "Proporciona información sobre..."
 - "Permite visualizar datos de..."
 - "Muestra información relacionada con..."
 
-**✅ USA EL CONTEXTO DEL NOMBRE para ser ESPECÍFICO:**
+**✅ USA EL CONTEXTO COMPLETO (nombre + SQL) para ser ESPECÍFICO:**
 
-Ejemplos de objetivos según el nombre:
+Ejemplo MALO:
+"Proporciona información sobre estudiantes matriculados"
 
-📊 Si el nombre es "Alumnos matriculados":
-❌ MAL: "Proporciona información sobre estudiantes"
-✅ BIEN: "Muestra el listado completo de estudiantes matriculados en el periodo actual, con sus datos personales (documento, nombre, email), información del programa académico al que pertenecen y créditos inscritos. Permite a los coordinadores académicos consultar el detalle de su población estudiantil activa, verificar matrículas y realizar seguimiento individual."
-
-📊 Si el nombre es "Pensum por plan de estudio":
-❌ MAL: "Muestra información de pensums"
-✅ BIEN: "Presenta la estructura curricular detallada de cada plan de estudio vigente, incluyendo todas las asignaturas organizadas por semestre, créditos académicos, requisitos y correquisitos. Permite a directores de programa y asesores académicos consultar la malla curricular oficial, planear horarios y asesorar estudiantes sobre la secuencia de materias."
-
-📊 Si el nombre es "Recaudos por concepto":
-❌ MAL: "Proporciona datos financieros"
-✅ BIEN: "Consolida los ingresos recibidos clasificados por concepto de pago (matrícula, derechos de grado, certificados, etc.) en un periodo determinado. Permite al área financiera analizar el comportamiento de recaudo por tipo de ingreso, identificar conceptos con mayor volumen y realizar proyecciones presupuestales."
-
-📊 Si el nombre es "SNIES - Matriculados primer curso":
-❌ MAL: "Muestra estudiantes nuevos"
-✅ BIEN: "Genera el reporte oficial de estudiantes de primer ingreso (primer curso) según los criterios y definiciones del SNIES (Sistema Nacional de Información de la Educación Superior). Permite al área de planeación preparar los archivos de cargue obligatorios ante el Ministerio de Educación Nacional para el reporte de nuevos matriculados en el periodo."
+Ejemplo BUENO (usando contexto SQL):
+"Muestra el listado completo de estudiantes actualmente matriculados, incluyendo sus datos de identificación (tipo documento, número documento, ID Banner), información de contacto (email personal, email institucional), contexto académico (periodo académico, programa, modalidad, sede) y métricas de rendimiento académico (créditos acumulados, créditos del periodo, promedio ponderado acumulado). Permite a coordinadores académicos consultar la población estudiantil activa, verificar matrículas individuales, analizar el progreso crediticio de cada alumno y realizar seguimiento del rendimiento académico."
 
 **SI NO HAY CONTEXTO, analiza la captura cuidadosamente e infiere el objetivo más específico posible.**
 `;
@@ -118,7 +139,8 @@ Ejemplos de objetivos según el nombre:
   
   const prompt = `Analiza esta captura completa de un reporte/dashboard de Power BI y extrae TODA la información visible.
 
-${seccionContexto}
+${seccionSQL}
+${seccionContextoUsuario}
 
 **ANÁLISIS REQUERIDO (MUY DETALLADO):**
 
@@ -127,7 +149,7 @@ ${seccionContexto}
    ${!nombreReporte ? '- Si el usuario NO proporcionó nombre, extrae el título exacto visible en la imagen' : '- Usa el nombre proporcionado por el usuario como prioritario'}
    ${!codigoReporte ? '- **Código o identificador:** Busca patrones tipo "BNR-XX-YY-##" o códigos alfanuméricos' : '- Usa el código proporcionado por el usuario'}
    - **Categoría:** Infiere del contenido (Académico, Financiero, Administrativo, SNIES, etc.)
-   - **Objetivo aparente:** ${nombreReporte || codigoReporte ? 'GENERA UN OBJETIVO ESPECÍFICO Y DETALLADO basándote en el contexto proporcionado' : 'Deduce para qué sirve basándote en visuales y filtros'}
+   - **Objetivo:** ${nombreReporte || codigoReporte || camposSQL.length > 0 ? 'GENERA UN OBJETIVO ESPECÍFICO, COMPLETO Y DETALLADO usando TODO el contexto disponible (nombre + campos SQL). Menciona las columnas/métricas clave del reporte COMPLETO, aunque no todas sean visibles en la captura' : 'Deduce para qué sirve basándote en visuales y filtros'}
 
 2. **INVENTARIO COMPLETO DE FILTROS:**
    - Cuenta TODOS los slicers/filtros visibles
@@ -153,6 +175,7 @@ ${seccionContexto}
    - Cuenta TODOS los visuales (tablas, gráficos, KPIs, tarjetas)
    - Lista sus títulos si son visibles
    - Identifica tipo de cada uno
+   ${camposSQL.length > 0 ? '\n   - **IMPORTANTE:** Si ves una tabla, intenta mapear sus columnas visibles con los campos SQL disponibles' : ''}
    
    **Formato esperado:**
    \`\`\`json
@@ -187,7 +210,7 @@ ${seccionContexto}
   "codigoReporte": "${codigoReporte || 'BNR-XX-YY-## (si es visible en la imagen)'}",
   "categoria": "Categoría principal",
   "subcategoria": "Subcategoría (si aplica)",
-  "objetivo": "Descripción ESPECÍFICA y DETALLADA del propósito (${nombreReporte || codigoReporte ? 'USA EL CONTEXTO PROPORCIONADO' : '3-5 líneas basadas en análisis visual'})",
+  "objetivo": "Descripción ESPECÍFICA, COMPLETA y DETALLADA del propósito. ${nombreReporte || codigoReporte || camposSQL.length > 0 ? 'USA TODO EL CONTEXTO DISPONIBLE (nombre + campos SQL) para mencionar las métricas/columnas clave del reporte COMPLETO, aunque no todas sean visibles en la captura. Por ejemplo, si el nombre menciona créditos y promedios o si hay campos SQL de ese tipo, MENCIÓNALOS aunque no se vean en la imagen.' : 'Basado en análisis visual'}",
   "cantidadFiltros": 7,
   "filtrosDetectados": [
     {"nombre": "...", "tipo": "..."}
@@ -201,14 +224,14 @@ ${seccionContexto}
   "tipoReporte": "Operativo | Ejecutivo | Analítico | Regulatorio",
   "fuenteDatos": "Banner | DWH | Otro (si es visible)",
   "confianza": 0.XX,
-  "observaciones": "Notas adicionales relevantes"
+  "observaciones": "Notas adicionales relevantes${camposSQL.length > 0 ? '. Si detectaste columnas no visibles basándote en el contexto SQL, menciónalo aquí.' : ''}"
 }
 
 **IMPORTANTE:**
 - Sé exhaustivo en el conteo de filtros y visuales
 - Si no ves algo claramente, no lo inventes
 - La confianza debe reflejar qué tan claro se ve todo
-${nombreReporte || codigoReporte ? '- **PRIORIDAD MÁXIMA:** Usa el contexto del usuario para generar un objetivo ESPECÍFICO, no genérico' : ''}`;
+${nombreReporte || codigoReporte || camposSQL.length > 0 ? '- **PRIORIDAD MÁXIMA:** Usa TODO el contexto disponible (nombre + campos SQL) para generar un objetivo COMPLETO y ESPECÍFICO que mencione las funcionalidades del reporte COMPLETO, incluyendo columnas/métricas que probablemente existen pero no se ven en la captura' : ''}`;
 
   return await analizarImagenConIA(imagen, prompt);
 };
