@@ -271,53 +271,163 @@ const Filtros = ({ datos, onGuardar }) => {
   };
 
   const aplicarResultadosIA = () => {
-    if (!resultadoIA || !filtroSeleccionadoIA) return;
+  if (!resultadoIA || !filtroSeleccionadoIA) return;
 
-    const { index } = filtroSeleccionadoIA;
+  const { index } = filtroSeleccionadoIA;
+  let cambiosAplicados = [];
+  let advertencias = [];
 
-    if (resultadoIA.nombre) {
-      handleActualizarFiltro(index, 'nombre', resultadoIA.nombre);
-    }
+  // 1. APLICAR NOMBRE
+  if (resultadoIA.nombre && resultadoIA.nombre.trim()) {
+    handleActualizarFiltro(index, 'nombre', resultadoIA.nombre);
+    cambiosAplicados.push(`✅ Nombre: "${resultadoIA.nombre}"`);
+  }
 
-    if (resultadoIA.tipoControl) {
+  // 2. APLICAR TIPO DE CONTROL
+  if (resultadoIA.tipoControl) {
+    // Buscar coincidencia exacta o similar en los tipos disponibles
+    const tiposControl = [
+      'Segmentación (Slicer) - Lista',
+      'Segmentación (Slicer) - Menú desplegable',
+      'Segmentación (Slicer) - Mosaico/Botones',
+      'Segmentación (Slicer) - Entre (Fechas/Números)',
+      'Filtro Panel Lateral',
+      'Filtro URL'
+    ];
+    
+    const tipoEncontrado = tiposControl.find(t => 
+      t.toLowerCase().includes(resultadoIA.tipoControl.toLowerCase()) ||
+      resultadoIA.tipoControl.toLowerCase().includes(t.toLowerCase())
+    );
+    
+    if (tipoEncontrado) {
+      handleActualizarFiltro(index, 'tipoControl', tipoEncontrado);
+      cambiosAplicados.push(`✅ Tipo: "${tipoEncontrado}"`);
+    } else {
       handleActualizarFiltro(index, 'tipoControl', resultadoIA.tipoControl);
+      advertencias.push(`⚠️ Tipo "${resultadoIA.tipoControl}" no coincide exactamente con los predefinidos`);
     }
+  }
 
-    if (resultadoIA.valores) {
-      handleActualizarFiltro(index, 'valores', resultadoIA.valores);
-    }
+  // 3. APLICAR VALORES
+  if (resultadoIA.valores && resultadoIA.valores.trim()) {
+    handleActualizarFiltro(index, 'valores', resultadoIA.valores);
+    cambiosAplicados.push(`✅ Valores: "${resultadoIA.valores.substring(0, 50)}${resultadoIA.valores.length > 50 ? '...' : ''}"`);
+  }
 
-    if (resultadoIA.campoSQLSugerido) {
-      const campoEncontrado = columnasDisponibles.find(
-        col => col.toLowerCase().includes(resultadoIA.campoSQLSugerido.toLowerCase()) ||
-               resultadoIA.campoSQLSugerido.toLowerCase().includes(col.toLowerCase())
+  // 4. APLICAR CAMPO SQL - LÓGICA MEJORADA
+  if (resultadoIA.campoSQL) {
+    const camposSQLRaw = resultadoIA.campoSQL;
+    
+    // Detectar si hay concatenación (operador +)
+    if (camposSQLRaw.includes(' + ')) {
+      // Caso: Múltiples campos concatenados
+      const camposSeparados = camposSQLRaw
+        .split('+')
+        .map(c => c.trim())
+        .filter(c => c.length > 0);
+      
+      // Buscar coincidencias en campos disponibles
+      const camposEncontrados = [];
+      const camposNoEncontrados = [];
+      
+      camposSeparados.forEach(campoIA => {
+        const campoMatch = columnasDisponibles.find(colDisp => 
+          colDisp.toLowerCase() === campoIA.toLowerCase() ||
+          colDisp.toLowerCase().includes(campoIA.toLowerCase()) ||
+          campoIA.toLowerCase().includes(colDisp.toLowerCase())
+        );
+        
+        if (campoMatch) {
+          camposEncontrados.push(campoMatch);
+        } else {
+          camposNoEncontrados.push(campoIA);
+        }
+      });
+      
+      // Aplicar campos encontrados
+      if (camposEncontrados.length > 0) {
+        handleActualizarFiltro(index, 'camposRaw', camposEncontrados);
+        handleActualizarFiltro(index, 'campoSQL', camposEncontrados.join(" + ' - ' + "));
+        cambiosAplicados.push(`✅ Campos SQL: ${camposEncontrados.join(' + ')}`);
+      }
+      
+      // Advertir sobre campos no encontrados
+      if (camposNoEncontrados.length > 0) {
+        advertencias.push(`⚠️ Campos sugeridos por IA pero no encontrados en SQL: ${camposNoEncontrados.join(', ')}`);
+      }
+      
+    } else {
+      // Caso: Un solo campo
+      const campoMatch = columnasDisponibles.find(colDisp => 
+        colDisp.toLowerCase() === camposSQLRaw.toLowerCase() ||
+        colDisp.toLowerCase().includes(camposSQLRaw.toLowerCase()) ||
+        camposSQLRaw.toLowerCase().includes(colDisp.toLowerCase())
       );
       
-      if (campoEncontrado) {
-        handleActualizarFiltro(index, 'campoSQL', campoEncontrado);
-        handleActualizarFiltro(index, 'camposRaw', [campoEncontrado]);
+      if (campoMatch) {
+        // Coincidencia encontrada
+        handleActualizarFiltro(index, 'campoSQL', campoMatch);
+        handleActualizarFiltro(index, 'camposRaw', [campoMatch]);
+        cambiosAplicados.push(`✅ Campo SQL: "${campoMatch}"`);
       } else {
-        handleActualizarFiltro(index, 'campoSQL', resultadoIA.campoSQLSugerido);
+        // No se encontró coincidencia
+        if (camposSQLRaw.toLowerCase().includes('campo no disponible') || 
+            camposSQLRaw.toLowerCase().includes('no identificado')) {
+          advertencias.push(`⚠️ IA no pudo identificar el campo SQL. Revisa manualmente.`);
+        } else {
+          handleActualizarFiltro(index, 'campoSQL', camposSQLRaw);
+          advertencias.push(`⚠️ Campo sugerido "${camposSQLRaw}" no coincide exactamente con campos disponibles`);
+        }
       }
     }
+  }
 
-    if (resultadoIA.descripcion) {
-      handleActualizarFiltro(index, 'descripcion', resultadoIA.descripcion);
+  // 5. APLICAR DESCRIPCIÓN
+  if (resultadoIA.descripcion && resultadoIA.descripcion.trim()) {
+    handleActualizarFiltro(index, 'descripcion', resultadoIA.descripcion);
+    cambiosAplicados.push(`✅ Descripción aplicada`);
+  }
+
+  // 6. APLICAR IMAGEN
+  if (imagenAnalisis) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      handleActualizarFiltro(index, 'imagenReferencia', imagenAnalisis);
+      handleActualizarFiltro(index, 'imagenPreview', e.target.result);
+    };
+    reader.readAsDataURL(imagenAnalisis);
+    cambiosAplicados.push(`✅ Imagen de referencia guardada`);
+  }
+
+  // 7. MOSTRAR RESUMEN DE CAMBIOS
+  cerrarModalIA();
+  
+  let mensajeResumen = `🎉 Análisis de IA completado:\n\n`;
+  
+  if (cambiosAplicados.length > 0) {
+    mensajeResumen += `CAMBIOS APLICADOS:\n${cambiosAplicados.join('\n')}\n`;
+  }
+  
+  if (advertencias.length > 0) {
+    mensajeResumen += `\n⚠️ ADVERTENCIAS:\n${advertencias.join('\n')}\n`;
+  }
+  
+  if (resultadoIA.razonamiento) {
+    mensajeResumen += `\n💡 RAZONAMIENTO DE LA IA:\n${resultadoIA.razonamiento}`;
+  }
+  
+  if (resultadoIA.confianza) {
+    const confianzaPorcentaje = (resultadoIA.confianza * 100).toFixed(0);
+    mensajeResumen += `\n\n📊 Nivel de confianza: ${confianzaPorcentaje}%`;
+    
+    if (resultadoIA.confianza < 0.7) {
+      mensajeResumen += `\n⚠️ Confianza baja - Revisa cuidadosamente los resultados`;
     }
-
-    if (imagenAnalisis) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        handleActualizarFiltro(index, 'imagenReferencia', imagenAnalisis);
-        handleActualizarFiltro(index, 'imagenPreview', e.target.result);
-      };
-      reader.readAsDataURL(imagenAnalisis);
-    }
-
-    cerrarModalIA();
-    alert('✅ Información aplicada correctamente desde el análisis de IA');
-  };
-
+  }
+  
+  alert(mensajeResumen);
+};
   // ===== RENDER =====
   
   return (
@@ -660,25 +770,91 @@ const Filtros = ({ datos, onGuardar }) => {
                     Resultados del análisis
                   </h4>
                   
+                  {/* Nivel de confianza destacado */}
+                  {resultadoIA.confianza && (
+                    <div className={`${styles.confianzaBadge} ${
+                      resultadoIA.confianza >= 0.8 ? styles.confianzaAlta :
+                      resultadoIA.confianza >= 0.6 ? styles.confianzaMedia :
+                      styles.confianzaBaja
+                    }`}>
+                      📊 Confianza: {(resultadoIA.confianza * 100).toFixed(0)}%
+                    </div>
+                  )}
+                  
                   <div className={styles.resultadosIA}>
                     <div className={styles.resultadoItem}>
-                      <strong>Nombre:</strong> {resultadoIA.nombre || 'No detectado'}
+                      <strong>Nombre del Filtro:</strong> 
+                      <span className={resultadoIA.nombre ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.nombre || 'No detectado'}
+                      </span>
                     </div>
+                    
                     <div className={styles.resultadoItem}>
-                      <strong>Tipo de Control:</strong> {resultadoIA.tipoControl || 'No detectado'}
+                      <strong>Tipo de Control:</strong> 
+                      <span className={resultadoIA.tipoControl ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.tipoControl || 'No detectado'}
+                      </span>
                     </div>
+                    
                     <div className={styles.resultadoItem}>
-                      <strong>Valores:</strong> {resultadoIA.valores || 'No detectados'}
+                      <strong>Valores Visibles:</strong> 
+                      <span className={resultadoIA.valores ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.valores || 'No detectados'}
+                      </span>
                     </div>
+                    
+                    {/* Campo SQL con indicador de matching */}
                     <div className={styles.resultadoItem}>
-                      <strong>Campo SQL Sugerido:</strong> {resultadoIA.campoSQLSugerido || 'No sugerido'}
+                      <strong>Campo(s) SQL Sugerido(s):</strong>
+                      {resultadoIA.campoSQL ? (
+                        <div className={styles.campoSQLContainer}>
+                          <code className={styles.campoSQLCode}>
+                            {resultadoIA.campoSQL}
+                          </code>
+                          {columnasDisponibles.length > 0 && (
+                            <div className={styles.matchingStatus}>
+                              {(() => {
+                                // Verificar si hay matching
+                                const campos = resultadoIA.campoSQL.includes(' + ') 
+                                  ? resultadoIA.campoSQL.split(' + ').map(c => c.trim())
+                                  : [resultadoIA.campoSQL];
+                                
+                                const encontrados = campos.filter(c => 
+                                  columnasDisponibles.some(d => 
+                                    d.toLowerCase() === c.toLowerCase() ||
+                                    d.toLowerCase().includes(c.toLowerCase()) ||
+                                    c.toLowerCase().includes(d.toLowerCase())
+                                  )
+                                );
+                                
+                                if (encontrados.length === campos.length) {
+                                  return <span className={styles.matchOk}>✅ Coincidencia encontrada</span>;
+                                } else if (encontrados.length > 0) {
+                                  return <span className={styles.matchParcial}>⚠️ Coincidencia parcial ({encontrados.length}/{campos.length})</span>;
+                                } else {
+                                  return <span className={styles.matchNo}>❌ No coincide con campos SQL disponibles</span>;
+                                }
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={styles.valorNoDetectado}>No sugerido</span>
+                      )}
                     </div>
+                    
                     <div className={styles.resultadoItem}>
-                      <strong>Descripción:</strong> {resultadoIA.descripcion || 'No generada'}
+                      <strong>Descripción:</strong> 
+                      <p className={resultadoIA.descripcion ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.descripcion || 'No generada'}
+                      </p>
                     </div>
-                    {resultadoIA.confianza && (
-                      <div className={styles.resultadoConfianza}>
-                        <strong>Confianza:</strong> {(resultadoIA.confianza * 100).toFixed(0)}%
+                    
+                    {/* Razonamiento de la IA */}
+                    {resultadoIA.razonamiento && (
+                      <div className={styles.razonamientoIA}>
+                        <strong>💡 Razonamiento de la IA:</strong>
+                        <p>{resultadoIA.razonamiento}</p>
                       </div>
                     )}
                   </div>
@@ -694,7 +870,7 @@ const Filtros = ({ datos, onGuardar }) => {
                       onClick={ejecutarAnalisisIA}
                       className={styles.btnReintentar}
                     >
-                      🔄 Reintentar
+                      🔄 Reintentar Análisis
                     </button>
                   </div>
                 </div>

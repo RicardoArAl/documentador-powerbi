@@ -1006,3 +1006,465 @@
 .imagenSeleccionada.pegada {
   animation: pasteSuccess 0.3s ease-out;
 }
+/**
+ * =====================================================
+ * ESTILOS ADICIONALES PARA MEJORAS DE IA v3.0
+ * Visualizaciones - Agrega al final de tu CSS existente
+ * =====================================================
+ */
+
+/* ===== BADGE DE CONFIANZA ===== */
+.confianzaBadge {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: center;
+  animation: slideIn 0.3s ease-out;
+}
+
+.confianzaAlta {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+}
+
+.confianzaMedia {
+  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3);
+}
+
+.confianzaBaja {
+  background: linear-gradient(135deg, #f44336 0%, #ef5350 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(244, 67, 54, 0.3);
+}
+
+/* ===== VALORES DETECTADOS VS NO DETECTADOS ===== */
+.valorDetectado {
+  color: #2e7d32;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
+}
+
+.valorNoDetectado {
+  color: #9e9e9e;
+  font-style: italic;
+  display: block;
+  margin-top: 4px;
+}
+
+/* ===== TIPO DE VISUAL CON ICONO ===== */
+.tipoVisualContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tipoIcon {
+  font-size: 20px;
+  animation: bounceIn 0.5s ease-out;
+}
+
+/* ===== CAMPOS DETECTADOS - CHIPS CON MATCHING ===== */
+.camposContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.camposList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.campoChip {
+  display: inline-block;
+}
+
+.campoMatch {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #66bb6a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.campoNoMatch {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #ffb74d;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.matchingSummary {
+  background: #f5f5f5;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 3px solid #9e9e9e;
+}
+
+.matchCompleto {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.matchParcial {
+  color: #f57c00;
+  font-weight: 600;
+}
+
+.matchNulo {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+/* ===== MÉTRICAS CALCULADAS ===== */
+.metricasCode {
+  background: #f5f5f5;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #1976d2;
+  border: 1px solid #e0e0e0;
+  display: block;
+  margin-top: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ===== DESCRIPCIÓN FUNCIONAL ===== */
+.descripcionTexto {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+  margin-top: 8px;
+  line-height: 1.6;
+  font-size: 14px;
+  color: #424242;
+}
+
+/* ===== DETALLES TÉCNICOS ===== */
+.detallesTecnicos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.detalleTecnico {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detalleLabel {
+  font-weight: 600;
+  color: #616161;
+  min-width: 80px;
+}
+
+.detalleTecnico code {
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: #1976d2;
+  border: 1px solid #e0e0e0;
+  font-size: 12px;
+}
+
+/* ===== RAZONAMIENTO DE LA IA ===== */
+.razonamientoIA {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  border-left: 4px solid #2196f3;
+  animation: slideIn 0.4s ease-out;
+}
+
+.razonamientoIA strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #1565c0;
+  font-size: 14px;
+}
+
+.razonamientoIA p {
+  color: #424242;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ===== HINT DE CTRL+V ===== */
+.pasteHint {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-radius: 8px;
+  border: 1px dashed #ff9800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #e65100;
+}
+
+.pasteIcon {
+  font-size: 20px;
+}
+
+.pasteHint kbd {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin: 0 2px;
+}
+
+/* ===== MEJORAS EN RESULTADOS ITEM ===== */
+.resultadosIA {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resultadoItem {
+  padding: 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.resultadoItem:hover {
+  background: #f5f5f5;
+  border-color: #bdbdbd;
+}
+
+.resultadoItem strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #424242;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.campoMatch,
+.campoNoMatch {
+  animation: slideIn 0.3s ease-out backwards;
+}
+
+.campoMatch:nth-child(1) { animation-delay: 0.05s; }
+.campoMatch:nth-child(2) { animation-delay: 0.1s; }
+.campoMatch:nth-child(3) { animation-delay: 0.15s; }
+.campoMatch:nth-child(4) { animation-delay: 0.2s; }
+.campoMatch:nth-child(5) { animation-delay: 0.25s; }
+
+/* ===== ESTADOS HOVER ===== */
+.campoMatch:hover {
+  background: #c8e6c9;
+  border-color: #4caf50;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+  transition: all 0.2s ease;
+}
+
+.campoNoMatch:hover {
+  background: #ffe0b2;
+  border-color: #ff9800;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.metricasCode:hover {
+  background: #eeeeee;
+  border-color: #bdbdbd;
+  transition: all 0.2s ease;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .confianzaBadge {
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+  
+  .camposList {
+    gap: 6px;
+  }
+  
+  .campoMatch,
+  .campoNoMatch {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+  
+  .matchingSummary {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+  
+  .metricasCode {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+  
+  .descripcionTexto {
+    font-size: 12px;
+    padding: 10px;
+  }
+  
+  .detallesTecnicos {
+    padding: 10px;
+  }
+  
+  .detalleTecnico {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detalleLabel {
+    min-width: auto;
+  }
+  
+  .razonamientoIA {
+    padding: 12px;
+  }
+  
+  .razonamientoIA p {
+    font-size: 12px;
+  }
+  
+  .pasteHint {
+    flex-direction: column;
+    text-align: center;
+    font-size: 12px;
+  }
+}
+
+/* ===== MEJORAS EN SCROLL PARA LISTAS LARGAS ===== */
+.camposList::-webkit-scrollbar {
+  height: 6px;
+}
+
+.camposList::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.camposList::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.camposList::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ===== MEJORAS EN ACCESIBILIDAD ===== */
+.campoMatch:focus,
+.campoNoMatch:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* ===== ESTADOS DE CARGA ===== */
+.resultadoItem.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.resultadoItem.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

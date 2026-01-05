@@ -262,61 +262,251 @@ const Visualizaciones = ({ reportData, setReportData }) => {
   };
 
   const aplicarResultadosIA = () => {
-    if (!resultadoIA || !visualSeleccionadoIA) return;
+  if (!resultadoIA || !visualSeleccionadoIA) return;
 
-    const visualId = visualSeleccionadoIA.id;
+  const visualId = visualSeleccionadoIA.id;
+  let cambiosAplicados = [];
+  let advertencias = [];
+  let sugerencias = [];
 
-    if (resultadoIA.titulo) {
-      handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
-    }
+  // 1. APLICAR TÍTULO
+  if (resultadoIA.titulo && resultadoIA.titulo.trim()) {
+    handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
+    cambiosAplicados.push(`✅ Título: "${resultadoIA.titulo}"`);
+  } else {
+    advertencias.push('⚠️ No se detectó título en la imagen');
+  }
 
-    if (resultadoIA.tipo) {
-      const tipoEncontrado = TIPOS_VISUAL.find(
-        t => t.toLowerCase() === resultadoIA.tipo.toLowerCase()
+  // 2. APLICAR TIPO DE VISUAL - MATCHING INTELIGENTE
+  if (resultadoIA.tipo) {
+    const tiposSoportados = [
+      'Tabla',
+      'Matriz',
+      'Gráfico de Barras Verticales',
+      'Gráfico de Barras Horizontales',
+      'Gráfico de Líneas',
+      'Gráfico de Áreas',
+      'Gráfico Circular (Pie)',
+      'Gráfico de Anillo (Donut)',
+      'Gráfico de Dispersión',
+      'Mapa',
+      'KPI Card',
+      'Medidor (Gauge)',
+      'Embudo (Funnel)',
+      'Cascada (Waterfall)',
+      'Treemap',
+      'Otro'
+    ];
+    
+    // Matching flexible de tipo
+    let tipoEncontrado = tiposSoportados.find(t => 
+      t.toLowerCase() === resultadoIA.tipo.toLowerCase()
+    );
+    
+    // Si no hay match exacto, buscar parcial
+    if (!tipoEncontrado) {
+      tipoEncontrado = tiposSoportados.find(t => 
+        t.toLowerCase().includes(resultadoIA.tipo.toLowerCase()) ||
+        resultadoIA.tipo.toLowerCase().includes(t.toLowerCase())
       );
-      handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado || resultadoIA.tipo);
     }
+    
+    // Mapeo de nombres alternativos comunes
+    if (!tipoEncontrado) {
+      const mapeoAlternativo = {
+        'bar': 'Gráfico de Barras Verticales',
+        'column': 'Gráfico de Barras Verticales',
+        'line': 'Gráfico de Líneas',
+        'pie': 'Gráfico Circular (Pie)',
+        'donut': 'Gráfico de Anillo (Donut)',
+        'scatter': 'Gráfico de Dispersión',
+        'gauge': 'Medidor (Gauge)',
+        'kpi': 'KPI Card',
+        'card': 'KPI Card',
+        'funnel': 'Embudo (Funnel)',
+        'waterfall': 'Cascada (Waterfall)',
+        'matrix': 'Matriz',
+        'table': 'Tabla'
+      };
+      
+      const tipoNormalizado = resultadoIA.tipo.toLowerCase();
+      for (const [clave, valor] of Object.entries(mapeoAlternativo)) {
+        if (tipoNormalizado.includes(clave)) {
+          tipoEncontrado = valor;
+          break;
+        }
+      }
+    }
+    
+    if (tipoEncontrado) {
+      handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado);
+      cambiosAplicados.push(`✅ Tipo: "${tipoEncontrado}"`);
+    } else {
+      handleCambioVisualizacion(visualId, 'tipo', 'Otro');
+      advertencias.push(`⚠️ Tipo "${resultadoIA.tipo}" no coincide exactamente. Se marcó como "Otro"`);
+      sugerencias.push(`💡 Revisa y corrige manualmente el tipo de visual`);
+    }
+  }
 
-    if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles)) {
-      const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
-      const camposMatcheados = [];
+  // 3. APLICAR CAMPOS VISIBLES - MATCHING INTELIGENTE MÚLTIPLE
+  if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles) && resultadoIA.camposVisibles.length > 0) {
+    const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
+    const camposMatcheados = [];
+    const camposNoMatcheados = [];
 
-      resultadoIA.camposVisibles.forEach(campoIA => {
-        const match = camposDisponibles.find(
+    resultadoIA.camposVisibles.forEach(campoIA => {
+      // Estrategia 1: Match exacto (ignorando case)
+      let match = camposDisponibles.find(
+        campoReal => campoReal.toLowerCase() === campoIA.toLowerCase()
+      );
+      
+      // Estrategia 2: Match parcial (includes)
+      if (!match) {
+        match = camposDisponibles.find(
           campoReal => 
-            campoReal.toLowerCase() === campoIA.toLowerCase() ||
             campoReal.toLowerCase().includes(campoIA.toLowerCase()) ||
             campoIA.toLowerCase().includes(campoReal.toLowerCase())
         );
-        
-        if (match) {
-          camposMatcheados.push(match);
-        }
-      });
+      }
+      
+      // Estrategia 3: Match semántico
+      if (!match) {
+        // Buscar por palabras clave
+        const palabrasClaveIA = campoIA.toLowerCase().split(/[_\s-]+/);
+        match = camposDisponibles.find(campoReal => {
+          const palabrasClaveReal = campoReal.toLowerCase().split(/[_\s-]+/);
+          return palabrasClaveIA.some(p => palabrasClaveReal.includes(p));
+        });
+      }
+      
+      if (match) {
+        camposMatcheados.push(match);
+      } else {
+        camposNoMatcheados.push(campoIA);
+      }
+    });
 
+    if (camposMatcheados.length > 0) {
       handleCambioVisualizacion(visualId, 'camposUtilizados', camposMatcheados);
+      cambiosAplicados.push(`✅ Campos SQL: ${camposMatcheados.length} campo(s) identificado(s)`);
+      cambiosAplicados.push(`   → ${camposMatcheados.join(', ')}`);
     }
 
-    if (resultadoIA.metricasCalculadas) {
-      handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
+    if (camposNoMatcheados.length > 0) {
+      advertencias.push(`⚠️ ${camposNoMatcheados.length} campo(s) sugerido(s) por IA pero no encontrado(s) en SQL:`);
+      advertencias.push(`   → ${camposNoMatcheados.join(', ')}`);
+      sugerencias.push(`💡 Estos campos podrían ser: (1) calculados en Power BI, (2) nombres diferentes en SQL, (3) de otras tablas`);
     }
 
-    if (resultadoIA.descripcion) {
-      handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
+    // Información adicional de matching
+    if (camposMatcheados.length > 0 && camposNoMatcheados.length > 0) {
+      const tasaMatch = ((camposMatcheados.length / resultadoIA.camposVisibles.length) * 100).toFixed(0);
+      sugerencias.push(`📊 Tasa de matching: ${tasaMatch}% (${camposMatcheados.length}/${resultadoIA.camposVisibles.length})`);
     }
+  } else if (reportData.camposDetectados && reportData.camposDetectados.length > 0) {
+    advertencias.push('⚠️ IA no detectó campos específicos en la imagen');
+  }
 
-    if (imagenIA) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        handleCambioVisualizacion(visualId, 'imagen', e.target.result);
-      };
-      reader.readAsDataURL(imagenIA);
+  // 4. APLICAR MÉTRICAS CALCULADAS
+  if (resultadoIA.metricasCalculadas && resultadoIA.metricasCalculadas.trim()) {
+    handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
+    cambiosAplicados.push(`✅ Métricas: "${resultadoIA.metricasCalculadas.substring(0, 60)}${resultadoIA.metricasCalculadas.length > 60 ? '...' : ''}"`);
+    
+    // Validar si las métricas mencionan campos que existen
+    if (reportData.camposDetectados && reportData.camposDetectados.length > 0) {
+      const camposEnMetricas = resultadoIA.metricasCalculadas.match(/[A-Z_]+[A-Z0-9_]*/g) || [];
+      const camposReales = reportData.camposDetectados.map(c => c.nombre);
+      const camposMetricasValidos = camposEnMetricas.filter(c => camposReales.includes(c));
+      
+      if (camposMetricasValidos.length > 0) {
+        sugerencias.push(`✅ Las métricas referencian campos SQL válidos: ${camposMetricasValidos.join(', ')}`);
+      }
     }
+  }
 
-    cerrarModalIA();
-    alert('✅ Información aplicada correctamente desde el análisis de IA');
-  };
+  // 5. APLICAR DESCRIPCIÓN
+  if (resultadoIA.descripcion && resultadoIA.descripcion.trim()) {
+    handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
+    cambiosAplicados.push(`✅ Descripción funcional generada (${resultadoIA.descripcion.length} caracteres)`);
+  }
 
+  // 6. APLICAR IMAGEN
+  if (imagenIA) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      handleCambioVisualizacion(visualId, 'imagen', e.target.result);
+    };
+    reader.readAsDataURL(imagenIA);
+    cambiosAplicados.push(`✅ Imagen del visual guardada`);
+  }
+
+  // 7. INFORMACIÓN ADICIONAL DE DETALLES TÉCNICOS
+  if (resultadoIA.detallesCampos) {
+    const detalles = resultadoIA.detallesCampos;
+    const infoTecnica = [];
+    
+    if (detalles.ejeX) infoTecnica.push(`Eje X: ${detalles.ejeX}`);
+    if (detalles.ejeY) infoTecnica.push(`Eje Y: ${detalles.ejeY}`);
+    if (detalles.leyenda) infoTecnica.push(`Leyenda: ${detalles.leyenda}`);
+    if (detalles.columnas && detalles.columnas.length > 0) {
+      infoTecnica.push(`Columnas: ${detalles.columnas.length} detectadas`);
+    }
+    
+    if (infoTecnica.length > 0) {
+      sugerencias.push(`🔧 Detalles técnicos detectados: ${infoTecnica.join(' | ')}`);
+    }
+  }
+
+  // 8. MOSTRAR RESUMEN COMPLETO
+  cerrarModalIA();
+  
+  let mensajeResumen = `🎉 ANÁLISIS DE VISUALIZACIÓN COMPLETADO\n\n`;
+  
+  // Sección de cambios aplicados
+  if (cambiosAplicados.length > 0) {
+    mensajeResumen += `✅ CAMBIOS APLICADOS:\n`;
+    cambiosAplicados.forEach(cambio => {
+      mensajeResumen += `${cambio}\n`;
+    });
+  }
+  
+  // Sección de advertencias
+  if (advertencias.length > 0) {
+    mensajeResumen += `\n⚠️ ADVERTENCIAS:\n`;
+    advertencias.forEach(adv => {
+      mensajeResumen += `${adv}\n`;
+    });
+  }
+  
+  // Sección de sugerencias
+  if (sugerencias.length > 0) {
+    mensajeResumen += `\n💡 SUGERENCIAS:\n`;
+    sugerencias.forEach(sug => {
+      mensajeResumen += `${sug}\n`;
+    });
+  }
+  
+  // Razonamiento de la IA
+  if (resultadoIA.razonamiento) {
+    mensajeResumen += `\n🤖 RAZONAMIENTO DE LA IA:\n${resultadoIA.razonamiento}`;
+  }
+  
+  // Nivel de confianza
+  if (resultadoIA.confianza) {
+    const confianzaPorcentaje = (resultadoIA.confianza * 100).toFixed(0);
+    mensajeResumen += `\n\n📊 Nivel de confianza: ${confianzaPorcentaje}%`;
+    
+    if (resultadoIA.confianza >= 0.8) {
+      mensajeResumen += ` ✅ (Alta)`;
+    } else if (resultadoIA.confianza >= 0.6) {
+      mensajeResumen += ` ⚠️ (Media - Revisa los resultados)`;
+    } else {
+      mensajeResumen += ` ❌ (Baja - Verifica manualmente)`;
+    }
+  }
+  
+  alert(mensajeResumen);
+};
   // ===== RENDER =====
 
   return (
@@ -647,55 +837,197 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
               {/* Paso 3: Resultados */}
               {resultadoIA && (
-                <div className={styles.pasoModal}>
-                  <h4 className={styles.pasoTitulo}>
-                    <span className={styles.pasoNumero}>3</span>
-                    Resultados del análisis
-                  </h4>
+              <div className={styles.pasoModal}>
+                <h4 className={styles.pasoTitulo}>
+                  <span className={styles.pasoNumero}>3</span>
+                  Resultados del análisis
+                </h4>
+                
+                {/* Badge de confianza */}
+                {resultadoIA.confianza && (
+                  <div className={`${styles.confianzaBadge} ${
+                    resultadoIA.confianza >= 0.8 ? styles.confianzaAlta :
+                    resultadoIA.confianza >= 0.6 ? styles.confianzaMedia :
+                    styles.confianzaBaja
+                  }`}>
+                    📊 Confianza: {(resultadoIA.confianza * 100).toFixed(0)}%
+                    {resultadoIA.confianza >= 0.8 ? ' (Alta)' : 
+                    resultadoIA.confianza >= 0.6 ? ' (Media)' : ' (Baja)'}
+                  </div>
+                )}
+                
+                <div className={styles.resultadosIA}>
                   
-                  <div className={styles.resultadosIA}>
-                    <div className={styles.resultadoItem}>
-                      <strong>Título:</strong> {resultadoIA.titulo || 'No detectado'}
+                  {/* Título */}
+                  <div className={styles.resultadoItem}>
+                    <strong>Título del Visual:</strong>
+                    <span className={resultadoIA.titulo ? styles.valorDetectado : styles.valorNoDetectado}>
+                      {resultadoIA.titulo || 'No detectado'}
+                    </span>
+                  </div>
+                  
+                  {/* Tipo con indicador visual */}
+                  <div className={styles.resultadoItem}>
+                    <strong>Tipo de Visualización:</strong>
+                    <div className={styles.tipoVisualContainer}>
+                      <span className={resultadoIA.tipo ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.tipo || 'No detectado'}
+                      </span>
+                      {resultadoIA.tipo && (
+                        <span className={styles.tipoIcon}>
+                          {resultadoIA.tipo.includes('Tabla') ? '📋' :
+                          resultadoIA.tipo.includes('Barras') ? '📊' :
+                          resultadoIA.tipo.includes('Líneas') ? '📈' :
+                          resultadoIA.tipo.includes('Circular') || resultadoIA.tipo.includes('Anillo') ? '🥧' :
+                          resultadoIA.tipo.includes('KPI') ? '🎯' :
+                          resultadoIA.tipo.includes('Mapa') ? '🗺️' : '📊'}
+                        </span>
+                      )}
                     </div>
-                    <div className={styles.resultadoItem}>
-                      <strong>Tipo:</strong> {resultadoIA.tipo || 'No detectado'}
-                    </div>
-                    <div className={styles.resultadoItem}>
-                      <strong>Campos Visibles:</strong> {
-                        resultadoIA.camposVisibles && resultadoIA.camposVisibles.length > 0
-                          ? resultadoIA.camposVisibles.join(', ')
-                          : 'No detectados'
-                      }
-                    </div>
-                    <div className={styles.resultadoItem}>
-                      <strong>Métricas:</strong> {resultadoIA.metricasCalculadas || 'No detectadas'}
-                    </div>
-                    <div className={styles.resultadoItem}>
-                      <strong>Descripción:</strong> {resultadoIA.descripcion || 'No generada'}
-                    </div>
-                    {resultadoIA.confianza && (
-                      <div className={styles.resultadoConfianza}>
-                        <strong>Confianza:</strong> {(resultadoIA.confianza * 100).toFixed(0)}%
+                  </div>
+                  
+                  {/* Campos visibles con matching status */}
+                  <div className={styles.resultadoItem}>
+                    <strong>Campos Detectados:</strong>
+                    {resultadoIA.camposVisibles && resultadoIA.camposVisibles.length > 0 ? (
+                      <div className={styles.camposContainer}>
+                        <div className={styles.camposList}>
+                          {resultadoIA.camposVisibles.map((campo, idx) => {
+                            // Verificar si hay matching
+                            const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
+                            const tieneMatch = camposDisponibles.some(c => 
+                              c.toLowerCase() === campo.toLowerCase() ||
+                              c.toLowerCase().includes(campo.toLowerCase()) ||
+                              campo.toLowerCase().includes(c.toLowerCase())
+                            );
+                            
+                            return (
+                              <div key={idx} className={styles.campoChip}>
+                                <span className={tieneMatch ? styles.campoMatch : styles.campoNoMatch}>
+                                  {tieneMatch ? '✅' : '⚠️'} {campo}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Resumen de matching */}
+                        {reportData.camposDetectados && reportData.camposDetectados.length > 0 && (
+                          <div className={styles.matchingSummary}>
+                            {(() => {
+                              const camposDisponibles = reportData.camposDetectados.map(c => c.nombre);
+                              const matched = resultadoIA.camposVisibles.filter(c => 
+                                camposDisponibles.some(d => 
+                                  d.toLowerCase() === c.toLowerCase() ||
+                                  d.toLowerCase().includes(c.toLowerCase()) ||
+                                  c.toLowerCase().includes(d.toLowerCase())
+                                )
+                              ).length;
+                              const total = resultadoIA.camposVisibles.length;
+                              const porcentaje = ((matched / total) * 100).toFixed(0);
+                              
+                              return (
+                                <span className={
+                                  matched === total ? styles.matchCompleto :
+                                  matched > 0 ? styles.matchParcial :
+                                  styles.matchNulo
+                                }>
+                                  {matched === total ? '✅' : matched > 0 ? '⚠️' : '❌'} 
+                                  {` ${matched}/${total} campos coinciden con SQL (${porcentaje}%)`}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      <span className={styles.valorNoDetectado}>No detectados</span>
                     )}
                   </div>
-
-                  <div className={styles.modalAcciones}>
-                    <button
-                      onClick={aplicarResultadosIA}
-                      className={styles.btnAplicar}
-                    >
-                      ✅ Aplicar Resultados
-                    </button>
-                    <button
-                      onClick={ejecutarAnalisisIA}
-                      className={styles.btnReintentar}
-                    >
-                      🔄 Reintentar
-                    </button>
+                  
+                  {/* Métricas calculadas */}
+                  <div className={styles.resultadoItem}>
+                    <strong>Métricas Calculadas:</strong>
+                    {resultadoIA.metricasCalculadas ? (
+                      <code className={styles.metricasCode}>
+                        {resultadoIA.metricasCalculadas}
+                      </code>
+                    ) : (
+                      <span className={styles.valorNoDetectado}>No detectadas</span>
+                    )}
                   </div>
+                  
+                  {/* Descripción */}
+                  <div className={styles.resultadoItem}>
+                    <strong>Descripción Funcional:</strong>
+                    {resultadoIA.descripcion ? (
+                      <p className={styles.descripcionTexto}>
+                        {resultadoIA.descripcion}
+                      </p>
+                    ) : (
+                      <span className={styles.valorNoDetectado}>No generada</span>
+                    )}
+                  </div>
+                  
+                  {/* Detalles técnicos (si existen) */}
+                  {resultadoIA.detallesCampos && (
+                    <div className={styles.resultadoItem}>
+                      <strong>📐 Detalles Técnicos:</strong>
+                      <div className={styles.detallesTecnicos}>
+                        {resultadoIA.detallesCampos.ejeX && (
+                          <div className={styles.detalleTecnico}>
+                            <span className={styles.detalleLabel}>Eje X:</span>
+                            <code>{resultadoIA.detallesCampos.ejeX}</code>
+                          </div>
+                        )}
+                        {resultadoIA.detallesCampos.ejeY && (
+                          <div className={styles.detalleTecnico}>
+                            <span className={styles.detalleLabel}>Eje Y:</span>
+                            <code>{resultadoIA.detallesCampos.ejeY}</code>
+                          </div>
+                        )}
+                        {resultadoIA.detallesCampos.leyenda && (
+                          <div className={styles.detalleTecnico}>
+                            <span className={styles.detalleLabel}>Leyenda:</span>
+                            <code>{resultadoIA.detallesCampos.leyenda}</code>
+                          </div>
+                        )}
+                        {resultadoIA.detallesCampos.columnas && resultadoIA.detallesCampos.columnas.length > 0 && (
+                          <div className={styles.detalleTecnico}>
+                            <span className={styles.detalleLabel}>Columnas:</span>
+                            <span>{resultadoIA.detallesCampos.columnas.length} detectadas</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Razonamiento de la IA */}
+                  {resultadoIA.razonamiento && (
+                    <div className={styles.razonamientoIA}>
+                      <strong>💡 Razonamiento de la IA:</strong>
+                      <p>{resultadoIA.razonamiento}</p>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Botones de acción */}
+                <div className={styles.modalAcciones}>
+                  <button
+                    onClick={aplicarResultadosIA}
+                    className={styles.btnAplicar}
+                  >
+                    ✅ Aplicar Resultados
+                  </button>
+                  <button
+                    onClick={ejecutarAnalisisIA}
+                    className={styles.btnReintentar}
+                  >
+                    🔄 Reintentar Análisis
+                  </button>
+                </div>
+              </div>
+            )}
 
               {/* Errores */}
               {errorIA && (
