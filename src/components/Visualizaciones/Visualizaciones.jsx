@@ -1,7 +1,8 @@
 /**
  * =====================================================
- * COMPONENTE: VISUALIZACIONES v2.1
- * Sección 4 - Con Análisis de IA Integrado
+ * COMPONENTE: VISUALIZACIONES v2.2 COMPLETO
+ * Sección 4 - Con Análisis de IA + Contexto Adicional
+ * ⭐ NUEVO: Campo "Contexto Adicional" para columnas completas
  * ⭐ NUEVO: Soporte Ctrl+V para pegar capturas
  * =====================================================
  */
@@ -12,7 +13,7 @@ import { analizarVisualizacionDeImagen, validarRespuestaIA } from '../../utils/a
 
 const Visualizaciones = ({ reportData, setReportData }) => {
   
-  // ===== NUEVOS ESTADOS PARA IA =====
+  // ===== ESTADOS =====
   const [mostrarModalAsistencia, setMostrarModalAsistencia] = useState(false);
   const [visualSeleccionadoIA, setVisualSeleccionadoIA] = useState(null);
   const [imagenIA, setImagenIA] = useState(null);
@@ -20,9 +21,12 @@ const Visualizaciones = ({ reportData, setReportData }) => {
   const [resultadoIA, setResultadoIA] = useState(null);
   const [errorIA, setErrorIA] = useState(null);
   
+  // ⭐ NUEVO: Estado para contexto adicional en modal
+  const [contextoAdicionalModal, setContextoAdicionalModal] = useState('');
+  
   const inputImagenRef = useRef(null);
 
-  // ⭐ NUEVO: EFECTO PARA DETECTAR CTRL+V
+  // ===== EFECTO CTRL+V =====
   useEffect(() => {
     if (!mostrarModalAsistencia) return;
 
@@ -74,7 +78,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     'Otro'
   ];
 
-  // ===== FUNCIONES EXISTENTES =====
+  // ===== FUNCIONES DE GESTIÓN DE VISUALIZACIONES =====
 
   const handleAgregarVisualizacion = () => {
     const nuevaVisualizacion = {
@@ -84,7 +88,8 @@ const Visualizaciones = ({ reportData, setReportData }) => {
       imagen: null,
       camposUtilizados: [],
       metricasCalculadas: '',
-      descripcion: ''
+      descripcion: '',
+      contextoAdicional: '' // ⭐ NUEVO CAMPO
     };
 
     setReportData(prev => ({
@@ -177,7 +182,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     }));
   };
 
-  // ===== NUEVAS FUNCIONES PARA IA =====
+  // ===== FUNCIONES DE IA =====
 
   const abrirModalIA = (visual) => {
     setVisualSeleccionadoIA(visual);
@@ -185,6 +190,8 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     setImagenIA(null);
     setResultadoIA(null);
     setErrorIA(null);
+    // ⭐ NUEVO: Cargar contexto adicional existente del visual
+    setContextoAdicionalModal(visual.contextoAdicional || '');
   };
 
   const cerrarModalIA = () => {
@@ -194,6 +201,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
     setResultadoIA(null);
     setErrorIA(null);
     setAnalizandoIA(false);
+    setContextoAdicionalModal('');
   };
 
   const manejarSeleccionImagen = (evento) => {
@@ -242,7 +250,13 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
     try {
       const camposDisponibles = reportData.camposDetectados || [];
-      const resultado = await analizarVisualizacionDeImagen(imagenIA, camposDisponibles);
+      
+      // ⭐ NUEVO: Pasar contexto adicional a la función de análisis
+      const resultado = await analizarVisualizacionDeImagen(
+        imagenIA, 
+        camposDisponibles,
+        contextoAdicionalModal.trim() // ⭐ NUEVO PARÁMETRO
+      );
 
       const validacion = validarRespuestaIA(resultado, 0.6);
       
@@ -262,251 +276,201 @@ const Visualizaciones = ({ reportData, setReportData }) => {
   };
 
   const aplicarResultadosIA = () => {
-  if (!resultadoIA || !visualSeleccionadoIA) return;
+    if (!resultadoIA || !visualSeleccionadoIA) return;
 
-  const visualId = visualSeleccionadoIA.id;
-  let cambiosAplicados = [];
-  let advertencias = [];
-  let sugerencias = [];
+    const visualId = visualSeleccionadoIA.id;
+    let cambiosAplicados = [];
+    let advertencias = [];
+    let sugerencias = [];
 
-  // 1. APLICAR TÍTULO
-  if (resultadoIA.titulo && resultadoIA.titulo.trim()) {
-    handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
-    cambiosAplicados.push(`✅ Título: "${resultadoIA.titulo}"`);
-  } else {
-    advertencias.push('⚠️ No se detectó título en la imagen');
-  }
-
-  // 2. APLICAR TIPO DE VISUAL - MATCHING INTELIGENTE
-  if (resultadoIA.tipo) {
-    const tiposSoportados = [
-      'Tabla',
-      'Matriz',
-      'Gráfico de Barras Verticales',
-      'Gráfico de Barras Horizontales',
-      'Gráfico de Líneas',
-      'Gráfico de Áreas',
-      'Gráfico Circular (Pie)',
-      'Gráfico de Anillo (Donut)',
-      'Gráfico de Dispersión',
-      'Mapa',
-      'KPI Card',
-      'Medidor (Gauge)',
-      'Embudo (Funnel)',
-      'Cascada (Waterfall)',
-      'Treemap',
-      'Otro'
-    ];
-    
-    // Matching flexible de tipo
-    let tipoEncontrado = tiposSoportados.find(t => 
-      t.toLowerCase() === resultadoIA.tipo.toLowerCase()
-    );
-    
-    // Si no hay match exacto, buscar parcial
-    if (!tipoEncontrado) {
-      tipoEncontrado = tiposSoportados.find(t => 
-        t.toLowerCase().includes(resultadoIA.tipo.toLowerCase()) ||
-        resultadoIA.tipo.toLowerCase().includes(t.toLowerCase())
-      );
-    }
-    
-    // Mapeo de nombres alternativos comunes
-    if (!tipoEncontrado) {
-      const mapeoAlternativo = {
-        'bar': 'Gráfico de Barras Verticales',
-        'column': 'Gráfico de Barras Verticales',
-        'line': 'Gráfico de Líneas',
-        'pie': 'Gráfico Circular (Pie)',
-        'donut': 'Gráfico de Anillo (Donut)',
-        'scatter': 'Gráfico de Dispersión',
-        'gauge': 'Medidor (Gauge)',
-        'kpi': 'KPI Card',
-        'card': 'KPI Card',
-        'funnel': 'Embudo (Funnel)',
-        'waterfall': 'Cascada (Waterfall)',
-        'matrix': 'Matriz',
-        'table': 'Tabla'
-      };
-      
-      const tipoNormalizado = resultadoIA.tipo.toLowerCase();
-      for (const [clave, valor] of Object.entries(mapeoAlternativo)) {
-        if (tipoNormalizado.includes(clave)) {
-          tipoEncontrado = valor;
-          break;
-        }
-      }
-    }
-    
-    if (tipoEncontrado) {
-      handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado);
-      cambiosAplicados.push(`✅ Tipo: "${tipoEncontrado}"`);
+    // 1. APLICAR TÍTULO
+    if (resultadoIA.titulo && resultadoIA.titulo.trim()) {
+      handleCambioVisualizacion(visualId, 'titulo', resultadoIA.titulo);
+      cambiosAplicados.push(`✅ Título: "${resultadoIA.titulo}"`);
     } else {
-      handleCambioVisualizacion(visualId, 'tipo', 'Otro');
-      advertencias.push(`⚠️ Tipo "${resultadoIA.tipo}" no coincide exactamente. Se marcó como "Otro"`);
-      sugerencias.push(`💡 Revisa y corrige manualmente el tipo de visual`);
+      advertencias.push('⚠️ No se detectó título en la imagen');
     }
-  }
 
-  // 3. APLICAR CAMPOS VISIBLES - MATCHING INTELIGENTE MÚLTIPLE
-  if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles) && resultadoIA.camposVisibles.length > 0) {
-    const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
-    const camposMatcheados = [];
-    const camposNoMatcheados = [];
-
-    resultadoIA.camposVisibles.forEach(campoIA => {
-      // Estrategia 1: Match exacto (ignorando case)
-      let match = camposDisponibles.find(
-        campoReal => campoReal.toLowerCase() === campoIA.toLowerCase()
+    // 2. APLICAR TIPO DE VISUAL - MATCHING INTELIGENTE
+    if (resultadoIA.tipo) {
+      const tiposSoportados = TIPOS_VISUAL;
+      
+      let tipoEncontrado = tiposSoportados.find(t => 
+        t.toLowerCase() === resultadoIA.tipo.toLowerCase()
       );
       
-      // Estrategia 2: Match parcial (includes)
-      if (!match) {
-        match = camposDisponibles.find(
-          campoReal => 
-            campoReal.toLowerCase().includes(campoIA.toLowerCase()) ||
-            campoIA.toLowerCase().includes(campoReal.toLowerCase())
+      if (!tipoEncontrado) {
+        tipoEncontrado = tiposSoportados.find(t => 
+          t.toLowerCase().includes(resultadoIA.tipo.toLowerCase()) ||
+          resultadoIA.tipo.toLowerCase().includes(t.toLowerCase())
         );
       }
       
-      // Estrategia 3: Match semántico
-      if (!match) {
-        // Buscar por palabras clave
-        const palabrasClaveIA = campoIA.toLowerCase().split(/[_\s-]+/);
-        match = camposDisponibles.find(campoReal => {
-          const palabrasClaveReal = campoReal.toLowerCase().split(/[_\s-]+/);
-          return palabrasClaveIA.some(p => palabrasClaveReal.includes(p));
-        });
+      if (!tipoEncontrado) {
+        const mapeoAlternativo = {
+          'bar': 'Gráfico de Barras Verticales',
+          'column': 'Gráfico de Barras Verticales',
+          'line': 'Gráfico de Líneas',
+          'pie': 'Gráfico Circular (Pie)',
+          'donut': 'Gráfico de Anillo (Donut)',
+          'scatter': 'Gráfico de Dispersión',
+          'gauge': 'Medidor (Gauge)',
+          'kpi': 'KPI Card',
+          'card': 'KPI Card',
+          'funnel': 'Embudo (Funnel)',
+          'waterfall': 'Cascada (Waterfall)',
+          'matrix': 'Matriz',
+          'table': 'Tabla'
+        };
+        
+        const tipoNormalizado = resultadoIA.tipo.toLowerCase();
+        for (const [clave, valor] of Object.entries(mapeoAlternativo)) {
+          if (tipoNormalizado.includes(clave)) {
+            tipoEncontrado = valor;
+            break;
+          }
+        }
       }
       
-      if (match) {
-        camposMatcheados.push(match);
+      if (tipoEncontrado) {
+        handleCambioVisualizacion(visualId, 'tipo', tipoEncontrado);
+        cambiosAplicados.push(`✅ Tipo: "${tipoEncontrado}"`);
       } else {
-        camposNoMatcheados.push(campoIA);
+        handleCambioVisualizacion(visualId, 'tipo', 'Otro');
+        advertencias.push(`⚠️ Tipo "${resultadoIA.tipo}" no coincide exactamente. Se marcó como "Otro"`);
+        sugerencias.push(`💡 Revisa y corrige manualmente el tipo de visual`);
       }
-    });
-
-    if (camposMatcheados.length > 0) {
-      handleCambioVisualizacion(visualId, 'camposUtilizados', camposMatcheados);
-      cambiosAplicados.push(`✅ Campos SQL: ${camposMatcheados.length} campo(s) identificado(s)`);
-      cambiosAplicados.push(`   → ${camposMatcheados.join(', ')}`);
     }
 
-    if (camposNoMatcheados.length > 0) {
-      advertencias.push(`⚠️ ${camposNoMatcheados.length} campo(s) sugerido(s) por IA pero no encontrado(s) en SQL:`);
-      advertencias.push(`   → ${camposNoMatcheados.join(', ')}`);
-      sugerencias.push(`💡 Estos campos podrían ser: (1) calculados en Power BI, (2) nombres diferentes en SQL, (3) de otras tablas`);
+    // 3. APLICAR CAMPOS VISIBLES - MATCHING INTELIGENTE
+    if (resultadoIA.camposVisibles && Array.isArray(resultadoIA.camposVisibles) && resultadoIA.camposVisibles.length > 0) {
+      const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
+      const camposMatcheados = [];
+      const camposNoMatcheados = [];
+
+      resultadoIA.camposVisibles.forEach(campoIA => {
+        let match = camposDisponibles.find(
+          campoReal => campoReal.toLowerCase() === campoIA.toLowerCase()
+        );
+        
+        if (!match) {
+          match = camposDisponibles.find(
+            campoReal => 
+              campoReal.toLowerCase().includes(campoIA.toLowerCase()) ||
+              campoIA.toLowerCase().includes(campoReal.toLowerCase())
+          );
+        }
+        
+        if (!match) {
+          const palabrasClaveIA = campoIA.toLowerCase().split(/[_\s-]+/);
+          match = camposDisponibles.find(campoReal => {
+            const palabrasClaveReal = campoReal.toLowerCase().split(/[_\s-]+/);
+            return palabrasClaveIA.some(p => palabrasClaveReal.includes(p));
+          });
+        }
+        
+        if (match) {
+          camposMatcheados.push(match);
+        } else {
+          camposNoMatcheados.push(campoIA);
+        }
+      });
+
+      if (camposMatcheados.length > 0) {
+        handleCambioVisualizacion(visualId, 'camposUtilizados', camposMatcheados);
+        cambiosAplicados.push(`✅ Campos SQL: ${camposMatcheados.length} campo(s) identificado(s)`);
+        cambiosAplicados.push(`   → ${camposMatcheados.join(', ')}`);
+      }
+
+      if (camposNoMatcheados.length > 0) {
+        advertencias.push(`⚠️ ${camposNoMatcheados.length} campo(s) sugerido(s) por IA pero no encontrado(s) en SQL:`);
+        advertencias.push(`   → ${camposNoMatcheados.join(', ')}`);
+        sugerencias.push(`💡 Estos campos podrían ser: (1) calculados en Power BI, (2) nombres diferentes en SQL, (3) de otras tablas`);
+      }
+
+      if (camposMatcheados.length > 0 && camposNoMatcheados.length > 0) {
+        const tasaMatch = ((camposMatcheados.length / resultadoIA.camposVisibles.length) * 100).toFixed(0);
+        sugerencias.push(`📊 Tasa de matching: ${tasaMatch}% (${camposMatcheados.length}/${resultadoIA.camposVisibles.length})`);
+      }
     }
 
-    // Información adicional de matching
-    if (camposMatcheados.length > 0 && camposNoMatcheados.length > 0) {
-      const tasaMatch = ((camposMatcheados.length / resultadoIA.camposVisibles.length) * 100).toFixed(0);
-      sugerencias.push(`📊 Tasa de matching: ${tasaMatch}% (${camposMatcheados.length}/${resultadoIA.camposVisibles.length})`);
+    // 4. APLICAR MÉTRICAS
+    if (resultadoIA.metricasCalculadas && resultadoIA.metricasCalculadas.trim()) {
+      handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
+      cambiosAplicados.push(`✅ Métricas: "${resultadoIA.metricasCalculadas.substring(0, 60)}${resultadoIA.metricasCalculadas.length > 60 ? '...' : ''}"`);
     }
-  } else if (reportData.camposDetectados && reportData.camposDetectados.length > 0) {
-    advertencias.push('⚠️ IA no detectó campos específicos en la imagen');
-  }
 
-  // 4. APLICAR MÉTRICAS CALCULADAS
-  if (resultadoIA.metricasCalculadas && resultadoIA.metricasCalculadas.trim()) {
-    handleCambioVisualizacion(visualId, 'metricasCalculadas', resultadoIA.metricasCalculadas);
-    cambiosAplicados.push(`✅ Métricas: "${resultadoIA.metricasCalculadas.substring(0, 60)}${resultadoIA.metricasCalculadas.length > 60 ? '...' : ''}"`);
+    // 5. APLICAR DESCRIPCIÓN
+    if (resultadoIA.descripcion && resultadoIA.descripcion.trim()) {
+      handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
+      cambiosAplicados.push(`✅ Descripción funcional generada (${resultadoIA.descripcion.length} caracteres)`);
+    }
+
+    // 6. APLICAR IMAGEN
+    if (imagenIA) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        handleCambioVisualizacion(visualId, 'imagen', e.target.result);
+      };
+      reader.readAsDataURL(imagenIA);
+      cambiosAplicados.push(`✅ Imagen del visual guardada`);
+    }
+
+    // ⭐ 7. GUARDAR CONTEXTO ADICIONAL
+    if (contextoAdicionalModal.trim()) {
+      handleCambioVisualizacion(visualId, 'contextoAdicional', contextoAdicionalModal.trim());
+      const numLineas = contextoAdicionalModal.trim().split('\n').length;
+      cambiosAplicados.push(`✅ Contexto adicional guardado (${numLineas} líneas)`);
+    }
+
+    cerrarModalIA();
     
-    // Validar si las métricas mencionan campos que existen
-    if (reportData.camposDetectados && reportData.camposDetectados.length > 0) {
-      const camposEnMetricas = resultadoIA.metricasCalculadas.match(/[A-Z_]+[A-Z0-9_]*/g) || [];
-      const camposReales = reportData.camposDetectados.map(c => c.nombre);
-      const camposMetricasValidos = camposEnMetricas.filter(c => camposReales.includes(c));
+    // Mostrar resumen
+    let mensajeResumen = `🎉 ANÁLISIS DE VISUALIZACIÓN COMPLETADO\n\n`;
+    
+    if (cambiosAplicados.length > 0) {
+      mensajeResumen += `✅ CAMBIOS APLICADOS:\n`;
+      cambiosAplicados.forEach(cambio => {
+        mensajeResumen += `${cambio}\n`;
+      });
+    }
+    
+    if (advertencias.length > 0) {
+      mensajeResumen += `\n⚠️ ADVERTENCIAS:\n`;
+      advertencias.forEach(adv => {
+        mensajeResumen += `${adv}\n`;
+      });
+    }
+    
+    if (sugerencias.length > 0) {
+      mensajeResumen += `\n💡 SUGERENCIAS:\n`;
+      sugerencias.forEach(sug => {
+        mensajeResumen += `${sug}\n`;
+      });
+    }
+    
+    if (resultadoIA.razonamiento) {
+      mensajeResumen += `\n🤖 RAZONAMIENTO DE LA IA:\n${resultadoIA.razonamiento}`;
+    }
+    
+    if (resultadoIA.confianza) {
+      const confianzaPorcentaje = (resultadoIA.confianza * 100).toFixed(0);
+      mensajeResumen += `\n\n📊 Nivel de confianza: ${confianzaPorcentaje}%`;
       
-      if (camposMetricasValidos.length > 0) {
-        sugerencias.push(`✅ Las métricas referencian campos SQL válidos: ${camposMetricasValidos.join(', ')}`);
+      if (resultadoIA.confianza >= 0.8) {
+        mensajeResumen += ` ✅ (Alta)`;
+      } else if (resultadoIA.confianza >= 0.6) {
+        mensajeResumen += ` ⚠️ (Media - Revisa los resultados)`;
+      } else {
+        mensajeResumen += ` ❌ (Baja - Verifica manualmente)`;
       }
     }
-  }
-
-  // 5. APLICAR DESCRIPCIÓN
-  if (resultadoIA.descripcion && resultadoIA.descripcion.trim()) {
-    handleCambioVisualizacion(visualId, 'descripcion', resultadoIA.descripcion);
-    cambiosAplicados.push(`✅ Descripción funcional generada (${resultadoIA.descripcion.length} caracteres)`);
-  }
-
-  // 6. APLICAR IMAGEN
-  if (imagenIA) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      handleCambioVisualizacion(visualId, 'imagen', e.target.result);
-    };
-    reader.readAsDataURL(imagenIA);
-    cambiosAplicados.push(`✅ Imagen del visual guardada`);
-  }
-
-  // 7. INFORMACIÓN ADICIONAL DE DETALLES TÉCNICOS
-  if (resultadoIA.detallesCampos) {
-    const detalles = resultadoIA.detallesCampos;
-    const infoTecnica = [];
     
-    if (detalles.ejeX) infoTecnica.push(`Eje X: ${detalles.ejeX}`);
-    if (detalles.ejeY) infoTecnica.push(`Eje Y: ${detalles.ejeY}`);
-    if (detalles.leyenda) infoTecnica.push(`Leyenda: ${detalles.leyenda}`);
-    if (detalles.columnas && detalles.columnas.length > 0) {
-      infoTecnica.push(`Columnas: ${detalles.columnas.length} detectadas`);
-    }
-    
-    if (infoTecnica.length > 0) {
-      sugerencias.push(`🔧 Detalles técnicos detectados: ${infoTecnica.join(' | ')}`);
-    }
-  }
+    alert(mensajeResumen);
+  };
 
-  // 8. MOSTRAR RESUMEN COMPLETO
-  cerrarModalIA();
-  
-  let mensajeResumen = `🎉 ANÁLISIS DE VISUALIZACIÓN COMPLETADO\n\n`;
-  
-  // Sección de cambios aplicados
-  if (cambiosAplicados.length > 0) {
-    mensajeResumen += `✅ CAMBIOS APLICADOS:\n`;
-    cambiosAplicados.forEach(cambio => {
-      mensajeResumen += `${cambio}\n`;
-    });
-  }
-  
-  // Sección de advertencias
-  if (advertencias.length > 0) {
-    mensajeResumen += `\n⚠️ ADVERTENCIAS:\n`;
-    advertencias.forEach(adv => {
-      mensajeResumen += `${adv}\n`;
-    });
-  }
-  
-  // Sección de sugerencias
-  if (sugerencias.length > 0) {
-    mensajeResumen += `\n💡 SUGERENCIAS:\n`;
-    sugerencias.forEach(sug => {
-      mensajeResumen += `${sug}\n`;
-    });
-  }
-  
-  // Razonamiento de la IA
-  if (resultadoIA.razonamiento) {
-    mensajeResumen += `\n🤖 RAZONAMIENTO DE LA IA:\n${resultadoIA.razonamiento}`;
-  }
-  
-  // Nivel de confianza
-  if (resultadoIA.confianza) {
-    const confianzaPorcentaje = (resultadoIA.confianza * 100).toFixed(0);
-    mensajeResumen += `\n\n📊 Nivel de confianza: ${confianzaPorcentaje}%`;
-    
-    if (resultadoIA.confianza >= 0.8) {
-      mensajeResumen += ` ✅ (Alta)`;
-    } else if (resultadoIA.confianza >= 0.6) {
-      mensajeResumen += ` ⚠️ (Media - Revisa los resultados)`;
-    } else {
-      mensajeResumen += ` ❌ (Baja - Verifica manualmente)`;
-    }
-  }
-  
-  alert(mensajeResumen);
-};
+  // ===== RENDER CONTINÚA EN PARTE 2 =====
+  // ===== CONTINUACIÓN DE VISUALIZACIONES.JSX =====
   // ===== RENDER =====
 
   return (
@@ -566,7 +530,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
               {/* Contenido del formulario */}
               <div className={styles.cardBody}>
                 
-                {/* NUEVO: Sección de IA */}
+                {/* Sección de IA */}
                 <div className={styles.seccionIA}>
                   <h4 className={styles.seccionIATitulo}>🤖 Asistencia con IA</h4>
                   <p className={styles.seccionIADescripcion}>
@@ -652,7 +616,7 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                   </select>
                 </div>
 
-                {/* Campos SQL utilizados (multiselect) */}
+                {/* Campos SQL utilizados */}
                 <div className={styles.formGroup}>
                   <label>Campos SQL utilizados</label>
                   <div className={styles.multiselect}>
@@ -675,6 +639,24 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                   </div>
                   <small className={styles.hint}>
                     Selecciona los campos que utiliza este visual
+                  </small>
+                </div>
+
+                {/* ⭐ NUEVO: Contexto Adicional */}
+                <div className={styles.formGroup}>
+                  <label htmlFor={`contexto-${visual.id}`}>
+                    📋 Columnas/Campos Completos (Opcional)
+                  </label>
+                  <textarea
+                    id={`contexto-${visual.id}`}
+                    value={visual.contextoAdicional || ''}
+                    onChange={(e) => handleCambioVisualizacion(visual.id, 'contextoAdicional', e.target.value)}
+                    placeholder="Si tu tabla/visual tiene columnas que NO se ven en la captura por scroll horizontal, pégalas aquí (una por línea):&#10;&#10;Ejemplo:&#10;PERIODO_CODIGO&#10;NOMBRE_COMPLETO&#10;DOCUMENTO_IDENTIDAD&#10;EMAIL_INSTITUCIONAL&#10;EMAIL_PERSONAL&#10;CREDITOS_MATRICULADOS&#10;CREDITOS_APROBADOS&#10;PROMEDIO_ACUMULADO&#10;..."
+                    className={styles.textareaContexto}
+                    rows={6}
+                  />
+                  <small className={styles.hintContexto}>
+                    💡 Ayudará a la IA a entender el visual completo, incluso si no todas las columnas son visibles en la captura
                   </small>
                 </div>
 
@@ -788,7 +770,6 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                         o haz clic para seleccionar
                       </p>
                       
-                      {/* ⭐ NUEVO: Hint de Ctrl+V */}
                       <div className={styles.pasteHint}>
                         <span className={styles.pasteIcon}>⌨️</span>
                         <span>
@@ -806,6 +787,40 @@ const Visualizaciones = ({ reportData, setReportData }) => {
                   onChange={manejarSeleccionImagen}
                   style={{ display: 'none' }}
                 />
+              </div>
+
+              {/* ⭐ NUEVO: Paso 1.5 - Contexto Adicional */}
+              <div className={styles.pasoModal}>
+                <h4 className={styles.pasoTitulo}>
+                  <span className={styles.pasoNumero}>📋</span>
+                  Contexto Adicional (Opcional)
+                </h4>
+                
+                <p className={styles.descripcionContexto}>
+                  Si tu tabla/visual tiene <strong>columnas que no se ven</strong> en la captura por scroll horizontal, 
+                  pégalas aquí para que la IA las tenga en cuenta:
+                </p>
+                
+                <textarea
+                  value={contextoAdicionalModal}
+                  onChange={(e) => setContextoAdicionalModal(e.target.value)}
+                  placeholder="Pega las columnas completas aquí (una por línea):&#10;&#10;PERIODO_CODIGO&#10;NOMBRE_COMPLETO&#10;DOCUMENTO_IDENTIDAD&#10;EMAIL_INSTITUCIONAL&#10;EMAIL_PERSONAL&#10;TELEFONO_CONTACTO&#10;DIRECCION_RESIDENCIA&#10;CREDITOS_MATRICULADOS&#10;CREDITOS_APROBADOS&#10;PROMEDIO_ACUMULADO&#10;..."
+                  className={styles.textareaContextoModal}
+                  rows={8}
+                />
+                
+                <div className={styles.ayudaContexto}>
+                  <span className={styles.iconoAyuda}>💡</span>
+                  <div>
+                    <strong>¿Cuándo usar esto?</strong>
+                    <ul>
+                      <li>Tu tabla tiene muchas columnas pero solo se ven algunas en la imagen</li>
+                      <li>Tu slider/filtro tiene muchos valores pero no caben todos en la captura</li>
+                      <li>Quieres que la IA genere una descripción más completa</li>
+                    </ul>
+                    <strong>Beneficio:</strong> La IA mencionará en la descripción las columnas que no son visibles pero sí existen.
+                  </div>
+                </div>
               </div>
 
               {/* Paso 2: Analizar */}
@@ -837,199 +852,187 @@ const Visualizaciones = ({ reportData, setReportData }) => {
 
               {/* Paso 3: Resultados */}
               {resultadoIA && (
-              <div className={styles.pasoModal}>
-                <h4 className={styles.pasoTitulo}>
-                  <span className={styles.pasoNumero}>3</span>
-                  Resultados del análisis
-                </h4>
-                
-                {/* Badge de confianza */}
-                {resultadoIA.confianza && (
-                  <div className={`${styles.confianzaBadge} ${
-                    resultadoIA.confianza >= 0.8 ? styles.confianzaAlta :
-                    resultadoIA.confianza >= 0.6 ? styles.confianzaMedia :
-                    styles.confianzaBaja
-                  }`}>
-                    📊 Confianza: {(resultadoIA.confianza * 100).toFixed(0)}%
-                    {resultadoIA.confianza >= 0.8 ? ' (Alta)' : 
-                    resultadoIA.confianza >= 0.6 ? ' (Media)' : ' (Baja)'}
-                  </div>
-                )}
-                
-                <div className={styles.resultadosIA}>
+                <div className={styles.pasoModal}>
+                  <h4 className={styles.pasoTitulo}>
+                    <span className={styles.pasoNumero}>3</span>
+                    Resultados del análisis
+                  </h4>
                   
-                  {/* Título */}
-                  <div className={styles.resultadoItem}>
-                    <strong>Título del Visual:</strong>
-                    <span className={resultadoIA.titulo ? styles.valorDetectado : styles.valorNoDetectado}>
-                      {resultadoIA.titulo || 'No detectado'}
-                    </span>
-                  </div>
-                  
-                  {/* Tipo con indicador visual */}
-                  <div className={styles.resultadoItem}>
-                    <strong>Tipo de Visualización:</strong>
-                    <div className={styles.tipoVisualContainer}>
-                      <span className={resultadoIA.tipo ? styles.valorDetectado : styles.valorNoDetectado}>
-                        {resultadoIA.tipo || 'No detectado'}
-                      </span>
-                      {resultadoIA.tipo && (
-                        <span className={styles.tipoIcon}>
-                          {resultadoIA.tipo.includes('Tabla') ? '📋' :
-                          resultadoIA.tipo.includes('Barras') ? '📊' :
-                          resultadoIA.tipo.includes('Líneas') ? '📈' :
-                          resultadoIA.tipo.includes('Circular') || resultadoIA.tipo.includes('Anillo') ? '🥧' :
-                          resultadoIA.tipo.includes('KPI') ? '🎯' :
-                          resultadoIA.tipo.includes('Mapa') ? '🗺️' : '📊'}
-                        </span>
-                      )}
+                  {resultadoIA.confianza && (
+                    <div className={`${styles.confianzaBadge} ${
+                      resultadoIA.confianza >= 0.8 ? styles.confianzaAlta :
+                      resultadoIA.confianza >= 0.6 ? styles.confianzaMedia :
+                      styles.confianzaBaja
+                    }`}>
+                      📊 Confianza: {(resultadoIA.confianza * 100).toFixed(0)}%
+                      {resultadoIA.confianza >= 0.8 ? ' (Alta)' : 
+                      resultadoIA.confianza >= 0.6 ? ' (Media)' : ' (Baja)'}
                     </div>
-                  </div>
+                  )}
                   
-                  {/* Campos visibles con matching status */}
-                  <div className={styles.resultadoItem}>
-                    <strong>Campos Detectados:</strong>
-                    {resultadoIA.camposVisibles && resultadoIA.camposVisibles.length > 0 ? (
-                      <div className={styles.camposContainer}>
-                        <div className={styles.camposList}>
-                          {resultadoIA.camposVisibles.map((campo, idx) => {
-                            // Verificar si hay matching
-                            const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
-                            const tieneMatch = camposDisponibles.some(c => 
-                              c.toLowerCase() === campo.toLowerCase() ||
-                              c.toLowerCase().includes(campo.toLowerCase()) ||
-                              campo.toLowerCase().includes(c.toLowerCase())
-                            );
-                            
-                            return (
-                              <div key={idx} className={styles.campoChip}>
-                                <span className={tieneMatch ? styles.campoMatch : styles.campoNoMatch}>
-                                  {tieneMatch ? '✅' : '⚠️'} {campo}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        
-                        {/* Resumen de matching */}
-                        {reportData.camposDetectados && reportData.camposDetectados.length > 0 && (
-                          <div className={styles.matchingSummary}>
-                            {(() => {
-                              const camposDisponibles = reportData.camposDetectados.map(c => c.nombre);
-                              const matched = resultadoIA.camposVisibles.filter(c => 
-                                camposDisponibles.some(d => 
-                                  d.toLowerCase() === c.toLowerCase() ||
-                                  d.toLowerCase().includes(c.toLowerCase()) ||
-                                  c.toLowerCase().includes(d.toLowerCase())
-                                )
-                              ).length;
-                              const total = resultadoIA.camposVisibles.length;
-                              const porcentaje = ((matched / total) * 100).toFixed(0);
+                  <div className={styles.resultadosIA}>
+                    
+                    <div className={styles.resultadoItem}>
+                      <strong>Título del Visual:</strong>
+                      <span className={resultadoIA.titulo ? styles.valorDetectado : styles.valorNoDetectado}>
+                        {resultadoIA.titulo || 'No detectado'}
+                      </span>
+                    </div>
+                    
+                    <div className={styles.resultadoItem}>
+                      <strong>Tipo de Visualización:</strong>
+                      <div className={styles.tipoVisualContainer}>
+                        <span className={resultadoIA.tipo ? styles.valorDetectado : styles.valorNoDetectado}>
+                          {resultadoIA.tipo || 'No detectado'}
+                        </span>
+                        {resultadoIA.tipo && (
+                          <span className={styles.tipoIcon}>
+                            {resultadoIA.tipo.includes('Tabla') ? '📋' :
+                            resultadoIA.tipo.includes('Barras') ? '📊' :
+                            resultadoIA.tipo.includes('Líneas') ? '📈' :
+                            resultadoIA.tipo.includes('Circular') || resultadoIA.tipo.includes('Anillo') ? '🥧' :
+                            resultadoIA.tipo.includes('KPI') ? '🎯' :
+                            resultadoIA.tipo.includes('Mapa') ? '🗺️' : '📊'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className={styles.resultadoItem}>
+                      <strong>Campos Detectados:</strong>
+                      {resultadoIA.camposVisibles && resultadoIA.camposVisibles.length > 0 ? (
+                        <div className={styles.camposContainer}>
+                          <div className={styles.camposList}>
+                            {resultadoIA.camposVisibles.map((campo, idx) => {
+                              const camposDisponibles = reportData.camposDetectados?.map(c => c.nombre) || [];
+                              const tieneMatch = camposDisponibles.some(c => 
+                                c.toLowerCase() === campo.toLowerCase() ||
+                                c.toLowerCase().includes(campo.toLowerCase()) ||
+                                campo.toLowerCase().includes(c.toLowerCase())
+                              );
                               
                               return (
-                                <span className={
-                                  matched === total ? styles.matchCompleto :
-                                  matched > 0 ? styles.matchParcial :
-                                  styles.matchNulo
-                                }>
-                                  {matched === total ? '✅' : matched > 0 ? '⚠️' : '❌'} 
-                                  {` ${matched}/${total} campos coinciden con SQL (${porcentaje}%)`}
-                                </span>
+                                <div key={idx} className={styles.campoChip}>
+                                  <span className={tieneMatch ? styles.campoMatch : styles.campoNoMatch}>
+                                    {tieneMatch ? '✅' : '⚠️'} {campo}
+                                  </span>
+                                </div>
                               );
-                            })()}
+                            })}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className={styles.valorNoDetectado}>No detectados</span>
-                    )}
-                  </div>
-                  
-                  {/* Métricas calculadas */}
-                  <div className={styles.resultadoItem}>
-                    <strong>Métricas Calculadas:</strong>
-                    {resultadoIA.metricasCalculadas ? (
-                      <code className={styles.metricasCode}>
-                        {resultadoIA.metricasCalculadas}
-                      </code>
-                    ) : (
-                      <span className={styles.valorNoDetectado}>No detectadas</span>
-                    )}
-                  </div>
-                  
-                  {/* Descripción */}
-                  <div className={styles.resultadoItem}>
-                    <strong>Descripción Funcional:</strong>
-                    {resultadoIA.descripcion ? (
-                      <p className={styles.descripcionTexto}>
-                        {resultadoIA.descripcion}
-                      </p>
-                    ) : (
-                      <span className={styles.valorNoDetectado}>No generada</span>
-                    )}
-                  </div>
-                  
-                  {/* Detalles técnicos (si existen) */}
-                  {resultadoIA.detallesCampos && (
+                          
+                          {reportData.camposDetectados && reportData.camposDetectados.length > 0 && (
+                            <div className={styles.matchingSummary}>
+                              {(() => {
+                                const camposDisponibles = reportData.camposDetectados.map(c => c.nombre);
+                                const matched = resultadoIA.camposVisibles.filter(c => 
+                                  camposDisponibles.some(d => 
+                                    d.toLowerCase() === c.toLowerCase() ||
+                                    d.toLowerCase().includes(c.toLowerCase()) ||
+                                    c.toLowerCase().includes(d.toLowerCase())
+                                  )
+                                ).length;
+                                const total = resultadoIA.camposVisibles.length;
+                                const porcentaje = ((matched / total) * 100).toFixed(0);
+                                
+                                return (
+                                  <span className={
+                                    matched === total ? styles.matchCompleto :
+                                    matched > 0 ? styles.matchParcial :
+                                    styles.matchNulo
+                                  }>
+                                    {matched === total ? '✅' : matched > 0 ? '⚠️' : '❌'} 
+                                    {` ${matched}/${total} campos coinciden con SQL (${porcentaje}%)`}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={styles.valorNoDetectado}>No detectados</span>
+                      )}
+                    </div>
+                    
                     <div className={styles.resultadoItem}>
-                      <strong>📐 Detalles Técnicos:</strong>
-                      <div className={styles.detallesTecnicos}>
-                        {resultadoIA.detallesCampos.ejeX && (
-                          <div className={styles.detalleTecnico}>
-                            <span className={styles.detalleLabel}>Eje X:</span>
-                            <code>{resultadoIA.detallesCampos.ejeX}</code>
-                          </div>
-                        )}
-                        {resultadoIA.detallesCampos.ejeY && (
-                          <div className={styles.detalleTecnico}>
-                            <span className={styles.detalleLabel}>Eje Y:</span>
-                            <code>{resultadoIA.detallesCampos.ejeY}</code>
-                          </div>
-                        )}
-                        {resultadoIA.detallesCampos.leyenda && (
-                          <div className={styles.detalleTecnico}>
-                            <span className={styles.detalleLabel}>Leyenda:</span>
-                            <code>{resultadoIA.detallesCampos.leyenda}</code>
-                          </div>
-                        )}
-                        {resultadoIA.detallesCampos.columnas && resultadoIA.detallesCampos.columnas.length > 0 && (
-                          <div className={styles.detalleTecnico}>
-                            <span className={styles.detalleLabel}>Columnas:</span>
-                            <span>{resultadoIA.detallesCampos.columnas.length} detectadas</span>
-                          </div>
-                        )}
+                      <strong>Métricas Calculadas:</strong>
+                      {resultadoIA.metricasCalculadas ? (
+                        <code className={styles.metricasCode}>
+                          {resultadoIA.metricasCalculadas}
+                        </code>
+                      ) : (
+                        <span className={styles.valorNoDetectado}>No detectadas</span>
+                      )}
+                    </div>
+                    
+                    <div className={styles.resultadoItem}>
+                      <strong>Descripción Funcional:</strong>
+                      {resultadoIA.descripcion ? (
+                        <p className={styles.descripcionTexto}>
+                          {resultadoIA.descripcion}
+                        </p>
+                      ) : (
+                        <span className={styles.valorNoDetectado}>No generada</span>
+                      )}
+                    </div>
+                    
+                    {resultadoIA.detallesCampos && (
+                      <div className={styles.resultadoItem}>
+                        <strong>📐 Detalles Técnicos:</strong>
+                        <div className={styles.detallesTecnicos}>
+                          {resultadoIA.detallesCampos.ejeX && (
+                            <div className={styles.detalleTecnico}>
+                              <span className={styles.detalleLabel}>Eje X:</span>
+                              <code>{resultadoIA.detallesCampos.ejeX}</code>
+                            </div>
+                          )}
+                          {resultadoIA.detallesCampos.ejeY && (
+                            <div className={styles.detalleTecnico}>
+                              <span className={styles.detalleLabel}>Eje Y:</span>
+                              <code>{resultadoIA.detallesCampos.ejeY}</code>
+                            </div>
+                          )}
+                          {resultadoIA.detallesCampos.leyenda && (
+                            <div className={styles.detalleTecnico}>
+                              <span className={styles.detalleLabel}>Leyenda:</span>
+                              <code>{resultadoIA.detallesCampos.leyenda}</code>
+                            </div>
+                          )}
+                          {resultadoIA.detallesCampos.columnas && resultadoIA.detallesCampos.columnas.length > 0 && (
+                            <div className={styles.detalleTecnico}>
+                              <span className={styles.detalleLabel}>Columnas:</span>
+                              <span>{resultadoIA.detallesCampos.columnas.length} detectadas</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  {/* Razonamiento de la IA */}
-                  {resultadoIA.razonamiento && (
-                    <div className={styles.razonamientoIA}>
-                      <strong>💡 Razonamiento de la IA:</strong>
-                      <p>{resultadoIA.razonamiento}</p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                    
+                    {resultadoIA.razonamiento && (
+                      <div className={styles.razonamientoIA}>
+                        <strong>💡 Razonamiento de la IA:</strong>
+                        <p>{resultadoIA.razonamiento}</p>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Botones de acción */}
-                <div className={styles.modalAcciones}>
-                  <button
-                    onClick={aplicarResultadosIA}
-                    className={styles.btnAplicar}
-                  >
-                    ✅ Aplicar Resultados
-                  </button>
-                  <button
-                    onClick={ejecutarAnalisisIA}
-                    className={styles.btnReintentar}
-                  >
-                    🔄 Reintentar Análisis
-                  </button>
+                  <div className={styles.modalAcciones}>
+                    <button
+                      onClick={aplicarResultadosIA}
+                      className={styles.btnAplicar}
+                    >
+                      ✅ Aplicar Resultados
+                    </button>
+                    <button
+                      onClick={ejecutarAnalisisIA}
+                      className={styles.btnReintentar}
+                    >
+                      🔄 Reintentar Análisis
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-              {/* Errores */}
               {errorIA && (
                 <div className={styles.errorIA}>
                   ⚠️ {errorIA}

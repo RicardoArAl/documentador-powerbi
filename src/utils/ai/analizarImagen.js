@@ -499,19 +499,24 @@ ${tieneContextoSQL ? '- USA TODO EL CONTEXTO SQL disponible para hacer el mejor 
  * CASO 3: ANALIZAR VISUALIZACIÓN (MEJORADO v2.0)
  * =====================================================
  */
-export const analizarVisualizacionDeImagen = async (imagen, camposDisponibles = []) => {
+export const analizarVisualizacionDeImagen = async (
+  imagen, 
+  camposDisponibles = [],
+  contextoAdicional = '' // ⭐ NUEVO PARÁMETRO
+) => {
   
   // ====== ANÁLISIS DE CONTEXTO SQL ======
   const tieneContextoSQL = camposDisponibles.length > 0;
+  const tieneContextoAdicional = contextoAdicional && contextoAdicional.trim().length > 0;
   
   // Clasificar campos por categoría funcional
   const camposPorCategoria = {
-    dimensiones: [],      // Campos para agrupar/categorizar
-    metricas: [],         // Campos numéricos para agregar
-    fechas: [],          // Campos temporales
-    textos: [],          // Campos descriptivos
-    identificadores: [], // Códigos/IDs/PKs
-    booleanos: []        // Campos Si/No
+    dimensiones: [],
+    metricas: [],
+    fechas: [],
+    textos: [],
+    identificadores: [],
+    booleanos: []
   };
   
   if (tieneContextoSQL) {
@@ -519,7 +524,6 @@ export const analizarVisualizacionDeImagen = async (imagen, camposDisponibles = 
       const tipo = campo.tipo?.toUpperCase() || '';
       const nombre = campo.nombre?.toUpperCase() || '';
       
-      // Clasificación inteligente
       if (tipo.includes('DATE') || tipo.includes('TIME') || 
           nombre.includes('FECHA') || nombre.includes('PERIODO')) {
         camposPorCategoria.fechas.push(campo);
@@ -533,7 +537,6 @@ export const analizarVisualizacionDeImagen = async (imagen, camposDisponibles = 
           camposPorCategoria.metricas.push(campo);
         }
       } else {
-        // VARCHAR/TEXT
         if (campo.esLlave || nombre.includes('CODIGO') || nombre.includes('COD_')) {
           camposPorCategoria.identificadores.push(campo);
         } else if (nombre.includes('NOMBRE') || nombre.includes('NOM_') || 
@@ -546,7 +549,76 @@ export const analizarVisualizacionDeImagen = async (imagen, camposDisponibles = 
     });
   }
   
-  // ====== GENERAR SECCIÓN DE CONTEXTO DINÁMICO ======
+  // ====== ⭐ NUEVA SECCIÓN: PROCESAMIENTO DE CONTEXTO ADICIONAL ======
+  let seccionContextoAdicional = '';
+  
+  if (tieneContextoAdicional) {
+    const lineasContexto = contextoAdicional
+      .trim()
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    
+    const cantidadLineas = lineasContexto.length;
+    const primerasLineas = lineasContexto.slice(0, 20).join('\n   ');
+    
+    seccionContextoAdicional = `
+**⭐ CONTEXTO ADICIONAL PROPORCIONADO POR EL USUARIO:**
+
+El usuario ha indicado que este visual contiene **${cantidadLineas} columnas/campos adicionales** 
+que NO son completamente visibles en la imagen por scroll horizontal u otras limitaciones de espacio.
+
+**LISTA COMPLETA DE COLUMNAS/CAMPOS:**
+   ${primerasLineas}
+   ${cantidadLineas > 20 ? `\n   ... y ${cantidadLineas - 20} campos más` : ''}
+
+**⚠️ INSTRUCCIONES CRÍTICAS PARA EL ANÁLISIS:**
+
+1. **CAMPOS VISIBLES EN IMAGEN:**
+   - Identifica y extrae las columnas/campos que VES CLARAMENTE en la captura
+   - Mapéalas con los campos SQL disponibles usando matching inteligente
+
+2. **CAMPOS NO VISIBLES PERO EXISTENTES:**
+   - Los campos del contexto adicional QUE NO APARECEN EN LA IMAGEN también forman parte del visual
+   - **DEBES incluirlos** en "camposVisibles" junto con los que sí ves
+   - Marca claramente en el "razonamiento" cuáles son visibles vs cuáles vienen del contexto
+
+3. **DESCRIPCIÓN COMPLETA:**
+   - Tu descripción DEBE mencionar TODOS los campos (visibles + contexto adicional)
+   - Usa frases como: "Este visual contiene ${cantidadLineas} columnas en total. 
+     En la captura son visibles X columnas: [lista], pero también incluye columnas 
+     adicionales no visibles por scroll horizontal: [lista de contexto adicional]"
+   - Sé ESPECÍFICO sobre qué información muestra el visual COMPLETO
+
+4. **RAZONAMIENTO DETALLADO:**
+   - Explica cuántas columnas identificaste visualmente en la imagen
+   - Explica cuántas columnas adicionales fueron proporcionadas por el usuario
+   - Menciona si hay columnas en el contexto adicional que NO matchean con campos SQL
+   - Indica el nivel de completitud del análisis
+
+**EJEMPLO DE RESPUESTA CORRECTA:**
+{
+  "titulo": "Tabla de Estudiantes Matriculados",
+  "tipo": "Tabla",
+  "camposVisibles": [
+    "PERIODO_CODIGO",           // ← Visible en imagen
+    "NOMBRE_COMPLETO",          // ← Visible en imagen  
+    "DOCUMENTO_IDENTIDAD",      // ← Visible en imagen
+    "EMAIL_INSTITUCIONAL",      // ← Del contexto adicional
+    "EMAIL_PERSONAL",           // ← Del contexto adicional
+    "CREDITOS_MATRICULADOS",    // ← Del contexto adicional
+    "CREDITOS_APROBADOS",       // ← Del contexto adicional
+    "PROMEDIO_ACUMULADO"        // ← Del contexto adicional
+  ],
+  "descripcion": "Tabla exhaustiva con información completa de estudiantes matriculados. Contiene 8 columnas en total: en la captura son visibles 3 columnas (periodo, nombre, documento), pero el visual también incluye columnas adicionales no visibles por scroll horizontal: email institucional, email personal, créditos matriculados, créditos aprobados y promedio acumulado. Permite consultar datos personales, contacto y rendimiento académico de cada alumno.",
+  "razonamiento": "Identificadas 3 columnas visibles directamente en la imagen: PERIODO_CODIGO (superior izquierda), NOMBRE_COMPLETO (centro) y DOCUMENTO_IDENTIDAD (derecha). El usuario proporcionó 5 columnas adicionales mediante contexto adicional, todas ellas matchean perfectamente con campos SQL disponibles. El análisis está completo al 100% gracias al contexto proporcionado."
+}
+
+**NUNCA IGNORES EL CONTEXTO ADICIONAL. Es información REAL que complementa lo que ves en la imagen.**
+`;
+  }
+  
+  // ====== GENERAR SECCIÓN DE CONTEXTO SQL ======
   let seccionContextoSQL = '';
   
   if (tieneContextoSQL) {
@@ -588,144 +660,89 @@ Extrae SOLO la información visible en la imagen, sin inventar campos SQL.
 `;
   }
   
-  // ====== GENERAR GUÍA DE IDENTIFICACIÓN DE TIPOS ======
+  // ====== GENERAR GUÍA DE TIPOS (Mantenida igual) ======
   const guiaTiposVisuales = `
 **🎨 GUÍA DE IDENTIFICACIÓN DE TIPOS DE VISUALES:**
 
 Analiza CUIDADOSAMENTE la imagen y clasifica el visual en el tipo MÁS ESPECÍFICO:
 
 **TABLAS Y MATRICES:**
-1. **"Tabla"** 
-   - Filas y columnas simples
-   - Datos tabulares sin jerarquía
-   - Headers en la primera fila
-   - Puede tener totales abajo
-
-2. **"Matriz"**
-   - Tabla con agrupaciones jerárquicas
-   - Botones de expansión (+/-)
-   - Puede tener totales por filas Y columnas
-   - Estructura más compleja que tabla simple
+1. **"Tabla"** - Filas y columnas simples, datos tabulares sin jerarquía
+2. **"Matriz"** - Tabla con agrupaciones jerárquicas, botones de expansión (+/-)
 
 **GRÁFICOS DE BARRAS:**
-3. **"Gráfico de Barras Horizontales"**
-   - Barras que crecen de izquierda a derecha
-   - Categorías en eje Y (vertical)
-   - Valores en eje X (horizontal)
-
-4. **"Gráfico de Barras Verticales"** (también llamado Columnas)
-   - Barras que crecen de abajo hacia arriba
-   - Categorías en eje X (horizontal)
-   - Valores en eje Y (vertical)
+3. **"Gráfico de Barras Horizontales"** - Barras de izquierda a derecha
+4. **"Gráfico de Barras Verticales"** - Barras de abajo hacia arriba
 
 **GRÁFICOS DE LÍNEAS Y ÁREAS:**
-5. **"Gráfico de Líneas"**
-   - Líneas conectando puntos de datos
-   - Típico para series de tiempo
-   - Puede tener múltiples series (líneas)
-
-6. **"Gráfico de Áreas"**
-   - Similar a líneas pero con área rellena debajo
-   - Puede ser apilado (stacked)
+5. **"Gráfico de Líneas"** - Líneas conectando puntos
+6. **"Gráfico de Áreas"** - Líneas con área rellena debajo
 
 **GRÁFICOS CIRCULARES:**
-7. **"Gráfico Circular (Pie)"**
-   - Círculo dividido en sectores
-   - Cada sector representa proporción del total
-   - Muestra porcentajes o valores
-
-8. **"Gráfico de Anillo (Donut)"**
-   - Similar al circular pero con hueco en el centro
-   - A veces muestra total en el centro
+7. **"Gráfico Circular (Pie)"** - Círculo dividido en sectores
+8. **"Gráfico de Anillo (Donut)"** - Similar al circular con hueco central
 
 **VISUALES DE INSIGHTS:**
-9. **"KPI Card"** (Tarjeta de KPI)
-   - Muestra UN número grande destacado
-   - Puede tener indicador de tendencia (↑↓)
-   - A veces incluye mini gráfico (sparkline)
-   - Fondo generalmente de color sólido
-
-10. **"Medidor (Gauge)"**
-    - Visual semicircular o circular
-    - Aguja que apunta a un valor
-    - Rangos de colores (verde/amarillo/rojo)
-    - Similar a velocímetro
+9. **"KPI Card"** - Un número grande destacado, posible indicador de tendencia
+10. **"Medidor (Gauge)"** - Visual semicircular/circular con aguja
 
 **OTROS TIPOS:**
-11. **"Gráfico de Dispersión"**
-    - Puntos distribuidos en cuadrante
-    - Dos ejes numéricos
-    - Muestra correlación entre variables
-
-12. **"Mapa"**
-    - Representación geográfica
-    - Puntos, burbujas o regiones coloreadas
-    - Se ve un mapa claramente
-
-13. **"Embudo (Funnel)"**
-    - Forma de embudo invertido
-    - Etapas que se reducen progresivamente
-    - Típico para procesos de conversión
-
-14. **"Cascada (Waterfall)"**
-    - Barras flotantes
-    - Muestra incrementos/decrementos
-    - Conectores entre barras
-
-15. **"Treemap"**
-    - Rectángulos anidados
-    - Tamaño proporcional a valor
-    - Jerarquía visual por áreas
-
-16. **"Otro"**
-    - Si no coincide con ninguna categoría anterior
-    - ESPECIFICA qué tipo de visual es en la descripción
-
-**⚠️ IMPORTANTE:** Si dudas entre dos tipos, elige el MÁS ESPECÍFICO y menciona la ambigüedad en el razonamiento.
+11. **"Gráfico de Dispersión"** - Puntos distribuidos en cuadrante
+12. **"Mapa"** - Representación geográfica
+13. **"Embudo (Funnel)"** - Forma de embudo invertido
+14. **"Cascada (Waterfall)"** - Barras flotantes con incrementos/decrementos
+15. **"Treemap"** - Rectángulos anidados
+16. **"Otro"** - Si no coincide con ninguna categoría
 `;
   
-  // ====== INSTRUCCIONES DE ANÁLISIS ESTRUCTURADO ======
+  // ====== INSTRUCCIONES DE ANÁLISIS ACTUALIZADAS ======
   const instruccionesAnalisis = `
 **🔍 PROCESO DE ANÁLISIS PASO A PASO:**
 
 **PASO 1: IDENTIFICAR TIPO DE VISUAL**
 - Usa la guía de tipos arriba
 - Observa la FORMA y ESTRUCTURA del visual
-- Identifica elementos clave (ejes, leyendas, barras, líneas, etc.)
 
 **PASO 2: EXTRAER TÍTULO**
 - Busca el texto más prominente encima o dentro del visual
-- Si no hay título visible, genera uno descriptivo basado en lo que muestra
-- Ejemplo: Si ves una tabla de estudiantes → "Listado de Estudiantes"
+- Si no hay título visible, genera uno descriptivo
 
 **PASO 3: IDENTIFICAR CAMPOS UTILIZADOS**
 ${tieneContextoSQL ? `
 **CON CONTEXTO SQL - USA MATCHING INTELIGENTE:**
 
+${tieneContextoAdicional ? `
+**⚠️ MODO ANÁLISIS HÍBRIDO (IMAGEN + CONTEXTO ADICIONAL):**
+
+A. **CAMPOS VISIBLES EN IMAGEN:**
+   1. Lee los ENCABEZADOS de columnas que VES en la imagen
+   2. Compara cada encabezado con los campos SQL disponibles
+   3. Usa matching flexible: exacto, parcial, por tipo, semántico
+   
+B. **CAMPOS DEL CONTEXTO ADICIONAL:**
+   1. El usuario proporcionó una lista de columnas ADICIONALES
+   2. Estas columnas EXISTEN en el visual pero NO son visibles en la imagen
+   3. **DEBES incluirlas TODAS** en "camposVisibles"
+   4. Intenta matchearlas también con los campos SQL disponibles
+   
+C. **COMBINACIÓN FINAL:**
+   - "camposVisibles" debe contener: [campos visibles en imagen] + [campos del contexto adicional]
+   - Total esperado: aproximadamente ${tieneContextoAdicional ? contextoAdicional.trim().split('\n').filter(l => l.trim()).length : 'N/A'} campos según el contexto proporcionado
+   - Si la imagen muestra solo 5 columnas pero el contexto tiene 15, tu respuesta debe incluir las 20
+
+` : `
 Para TABLAS/MATRICES:
 1. Lee los ENCABEZADOS de columnas
 2. Compara cada encabezado con los campos SQL disponibles
-3. Usa matching flexible:
-   - Exacto: "Programa" → NOMBRE_PROGRAMA
-   - Por tipo: Columna con números → campos numéricos
-   - Semántico: "Créditos" → CREDITOS_ACUMULADOS, CREDITOS_APROBADOS
+3. Usa matching flexible: exacto, parcial, por tipo, semántico
 4. Lista TODOS los campos que identificaste
 
 Para GRÁFICOS:
-1. **EJE X:** ¿Qué campo se usa para categorizar? (dimensión)
-   - En barras horizontales → eje Y
-   - En barras verticales → eje X
-   - Busca en: ${camposPorCategoria.dimensiones.map(c => c.nombre).slice(0, 5).join(', ')}
-
-2. **EJE Y / VALORES:** ¿Qué métrica se muestra? (medida)
-   - Generalmente campos numéricos agregados
-   - Busca en: ${camposPorCategoria.metricas.map(c => c.nombre).slice(0, 5).join(', ')}
-
+1. **EJE X:** ¿Qué campo se usa para categorizar?
+2. **EJE Y / VALORES:** ¿Qué métrica se muestra?
 3. **LEYENDA:** ¿Hay series múltiples? ¿Por qué campo se agrupan?
-   - Campo que crea las categorías de colores
-   - Busca en dimensiones o identificadores
-
-4. **TOOLTIPS:** Si ves tooltips en la imagen, ¿qué campos muestran?
+4. **TOOLTIPS:** Si ves tooltips, ¿qué campos muestran?
+`}
 
 **ESTRATEGIA DE MATCHING POR PRIORIDAD:**
 1️⃣ Coincidencia EXACTA (ignorando mayúsculas/minúsculas)
@@ -738,131 +755,88 @@ Para GRÁFICOS:
 - DESCRIBE los campos que ves (no inventes nombres SQL)
 - Ejemplo: "camposVisibles": ["Nombre visible en columna 1", "Nombre visible en columna 2"]
 - Sé literal con lo que ves en la imagen
+${tieneContextoAdicional ? '- IMPORTANTE: Incluye también los campos del contexto adicional proporcionado por el usuario' : ''}
 `}
 
 **PASO 4: IDENTIFICAR MÉTRICAS CALCULADAS**
 ${tieneContextoSQL ? `
 Identifica si hay AGREGACIONES visibles:
-
-**Indicadores de agregación:**
 - Totales al final de tablas → SUM(campo_numérico)
 - Promedios → AVG(campo_numérico)
 - Conteos → COUNT(*) o COUNT(DISTINCT campo)
 - Porcentajes → (valor/total)*100
-- Máximos/Mínimos → MAX/MIN(campo)
-
-**Formato de salida:**
-"SUM(${camposPorCategoria.metricas[0]?.nombre || 'CAMPO_NUMERICO'}), COUNT(DISTINCT ${camposPorCategoria.identificadores[0]?.nombre || 'ID_CAMPO'})"
-
-**Pistas visuales:**
-- Columna "Total" → SUM
-- Columna "Cantidad" → COUNT
-- Columna "Promedio" → AVG
-- Símbolo % → cálculo de porcentaje
 ` : `
 Describe las métricas que veas sin nombres SQL:
 "Total de registros, Suma de valores, Promedio calculado"
 `}
 
 **PASO 5: GENERAR DESCRIPCIÓN FUNCIONAL**
+${tieneContextoAdicional ? `
+**⚠️ CRÍTICO - TU DESCRIPCIÓN DEBE SER COMPLETA:**
+
+Tu descripción DEBE reflejar el visual COMPLETO, no solo lo visible en la imagen:
+
+✅ CORRECTO:
+"Tabla exhaustiva con información completa de estudiantes. Contiene ${contextoAdicional.trim().split('\n').filter(l => l.trim()).length} columnas en total: en la captura son visibles X columnas ([lista columnas visibles]), pero el visual también incluye columnas adicionales no visibles por scroll horizontal: [lista columnas de contexto adicional]. Permite consultar..."
+
+❌ INCORRECTO:
+"Tabla que muestra estudiantes con las columnas X, Y, Z" ← ¡FALTA MENCIONAR LAS COLUMNAS ADICIONALES!
+
+` : ''}
 Responde estas preguntas en la descripción:
-1. ¿QUÉ muestra este visual? (qué datos exactos)
+1. ¿QUÉ muestra este visual? (qué datos exactos, incluyendo lo no visible)
 2. ¿PARA QUÉ sirve? (propósito funcional)
-3. ¿QUÉ INSIGHTS permite obtener? (qué decisiones apoya)
-4. ¿CÓMO se usa? (interactivo, drill-down, tooltips, etc.)
-
-**Ejemplo de descripción completa:**
-"Tabla que presenta el listado completo de estudiantes matriculados, mostrando su información personal (documento, nombre), contexto académico (programa, periodo, sede) y métricas de rendimiento (créditos acumulados, promedio). Permite a coordinadores consultar el detalle individual de cada alumno, verificar su estado de matrícula, y analizar su progreso crediticio. El visual es interactivo y permite ordenar por cualquier columna."
+3. ¿QUÉ INSIGHTS permite obtener?
+4. ¿CÓMO se usa? (interactivo, drill-down, tooltips)
 `;
   
-  // ====== INSTRUCCIONES DE DETALLES TÉCNICOS ======
-  const instruccionesDetalles = `
-**🔧 SECCIÓN "detallesCampos" - ANÁLISIS TÉCNICO:**
-
-Esta sección captura la ESTRUCTURA interna del visual para poder recrearlo.
-
-**Para GRÁFICOS (Barras, Líneas, Áreas, Circular, etc.):**
-{
-  "ejeX": "${camposPorCategoria.dimensiones[0]?.nombre || 'Campo de categoría'}", 
-  "ejeY": "${camposPorCategoria.metricas[0]?.nombre || 'Métrica numérica'}",
-  "leyenda": "${camposPorCategoria.dimensiones[1]?.nombre || 'Campo de series (si aplica)'} o null",
-  "tooltips": ["Campo1", "Campo2"] // Campos adicionales que aparecen al hacer hover
-}
-
-**Para TABLAS:**
-{
-  "columnas": ["CAMPO_SQL_1", "CAMPO_SQL_2", "CAMPO_SQL_3", ...],
-  "tieneTotal": true o false,
-  "ordenamiento": "Columna por la que parece estar ordenada"
-}
-
-**Para MATRICES:**
-{
-  "columnasFilas": ["Campo agrupación filas"],
-  "columnasColumnas": ["Campo agrupación columnas"],
-  "valores": ["Métricas en el centro"],
-  "nivelExpansion": "Expandido o Colapsado"
-}
-
-**Para KPI CARDS:**
-{
-  "metricaPrincipal": "${camposPorCategoria.metricas[0]?.nombre || 'Métrica destacada'}",
-  "tieneTendencia": true o false,
-  "tieneComparacion": true o false (vs periodo anterior, vs meta)
-}
-`;
-  
-  // ====== CONSTRUIR PROMPT COMPLETO DINÁMICO ======
-  const prompt = `Eres un experto analista de visualizaciones de Power BI. Tu tarea es analizar esta imagen de un VISUAL (gráfico, tabla, KPI, etc.) y extraer TODA su información con MÁXIMA PRECISIÓN TÉCNICA.
+  // ====== CONSTRUIR PROMPT COMPLETO ======
+  const prompt = `Eres un experto analista de visualizaciones de Power BI. Tu tarea es analizar esta imagen de un VISUAL y extraer TODA su información con MÁXIMA PRECISIÓN TÉCNICA.
 
 ${seccionContextoSQL}
+
+${seccionContextoAdicional}
 
 ${guiaTiposVisuales}
 
 ${instruccionesAnalisis}
 
-${instruccionesDetalles}
-
 **🎯 FORMATO DE RESPUESTA (JSON ESTRICTO):**
 
 {
   "titulo": "Título exacto del visual (o generado si no es visible)",
-  "tipo": "Tipo ESPECÍFICO según la guía (ej: Gráfico de Barras Horizontales)",
+  "tipo": "Tipo ESPECÍFICO según la guía",
   "camposVisibles": [
-    "${tieneContextoSQL ? camposDisponibles[0]?.nombre || 'CAMPO_SQL_1' : 'Nombre visible en imagen'}",
-    "${tieneContextoSQL ? camposDisponibles[1]?.nombre || 'CAMPO_SQL_2' : 'Nombre visible en imagen'}",
-    "..."
+    ${tieneContextoAdicional 
+      ? '"Campo1_visible_en_imagen", "Campo2_visible_en_imagen", "Campo3_del_contexto_adicional", "Campo4_del_contexto_adicional", ...'
+      : '"CAMPO_SQL_1", "CAMPO_SQL_2", ...'
+    }
   ],
-  "metricasCalculadas": "${tieneContextoSQL ? 'SUM(CAMPO_NUMERICO), COUNT(DISTINCT ID_CAMPO)' : 'Descripción de métricas visibles'}",
-  "descripcion": "Descripción funcional COMPLETA: qué muestra, para qué sirve, qué insights proporciona, cómo se usa. MÍNIMO 3 oraciones.",
-  "confianza": 0.XX (decimal entre 0 y 1),
+  "metricasCalculadas": "SUM(...), COUNT(...), AVG(...) o null",
+  "descripcion": "Descripción funcional COMPLETA que menciona TODOS los campos (visibles + contexto adicional). MÍNIMO 3 oraciones. ${tieneContextoAdicional ? 'DEBE indicar cuántas columnas totales tiene el visual y cuáles no son visibles en la captura.' : ''}",
+  "confianza": 0.XX,
   "detallesCampos": {
-    "ejeX": "Campo del eje X (para gráficos) o null",
-    "ejeY": "Métrica del eje Y (para gráficos) o null",
-    "leyenda": "Campo de series (si aplica) o null",
-    "columnas": ["Lista de columnas (para tablas)"] o null,
-    "agrupaciones": ["Campos de jerarquía (para matrices)"] o null,
-    "tooltips": ["Campos en tooltips (si visibles)"] o null
+    "ejeX": "..." o null,
+    "ejeY": "..." o null,
+    "leyenda": "..." o null,
+    "columnas": [...] o null,
+    "tooltips": [...] o null
   },
-  "razonamiento": "Explicación DETALLADA de cómo identificaste: (1) el tipo de visual, (2) los campos SQL matcheados, (3) las métricas calculadas. Menciona pistas visuales específicas que usaste."
+  "razonamiento": "Explicación DETALLADA de: (1) tipo de visual identificado, (2) campos matcheados de la imagen, ${tieneContextoAdicional ? '(3) campos adicionales del contexto proporcionado, (4) nivel de completitud del análisis.' : '(3) métricas calculadas.'}"
 }
 
 **⚠️ REGLAS CRÍTICAS:**
 
-1. **TIPO DE VISUAL:** Usa el nombre EXACTO de la guía (no inventes tipos)
+1. **TIPO DE VISUAL:** Usa el nombre EXACTO de la guía
 2. **CAMPOS SQL:** 
    ${tieneContextoSQL 
-     ? '- USA MATCHING INTELIGENTE con los campos disponibles\n   - Si no encuentras match claro, indica "Campo no identificado - [descripción]"\n   - NUNCA inventes nombres de campos SQL que no existan en el contexto'
-     : '- Usa los nombres LITERALES que ves en la imagen\n   - NO inventes nombres SQL'
+     ? '- USA MATCHING INTELIGENTE\n   - NUNCA inventes nombres de campos SQL'
+     : '- Usa los nombres LITERALES que ves'
    }
-3. **MÉTRICAS:** Identifica TODAS las agregaciones visibles (SUM, COUNT, AVG, etc.)
-4. **DESCRIPCIÓN:** Debe ser FUNCIONAL (para qué sirve), no solo DESCRIPTIVA (qué es)
-5. **DETALLES TÉCNICOS:** Completa "detallesCampos" según el tipo de visual
-6. **RAZONAMIENTO:** Explica TU PROCESO de análisis, menciona pistas visuales
-7. **CONFIANZA:** 
-   - Alta (0.8-1.0): Todo claro, matching perfecto
-   - Media (0.6-0.8): Algunas ambigüedades, matching parcial
-   - Baja (0.0-0.6): Muchas incertidumbres, sin matching
+3. **${tieneContextoAdicional ? '⭐ CONTEXTO ADICIONAL: OBLIGATORIO incluir todos los campos proporcionados por el usuario' : 'Sin contexto adicional'}**
+4. **DESCRIPCIÓN:** ${tieneContextoAdicional ? 'Debe mencionar el TOTAL de columnas y cuáles no son visibles' : 'Debe ser FUNCIONAL, no solo descriptiva'}
+5. **RAZONAMIENTO:** ${tieneContextoAdicional ? 'Explica cuántas columnas vienen de la imagen vs contexto adicional' : 'Explica tu proceso de análisis'}
+6. **CONFIANZA:** Alta (0.8-1.0) | Media (0.6-0.8) | Baja (0.0-0.6)
 
 **RESPONDE SOLO CON EL JSON. NO INCLUYAS TEXTO ADICIONAL NI MARKDOWN.**
 
